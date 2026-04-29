@@ -10,7 +10,7 @@ public class SimulationEngine {
     private Statistics stats;
     private Virus virus;
 
-    private InfectionManager infectionManager;
+    //private InfectionManager infectionManager;
     private MortalityManager mortalityManager;
     private MovementManager movementManager;
 

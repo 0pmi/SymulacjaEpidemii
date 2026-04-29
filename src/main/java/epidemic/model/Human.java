@@ -5,8 +5,6 @@ public class Human extends Agent {
     // --- Unikalne cechy biologiczne człowieka ---
     private double resistance;
 
-    private int remainingInfectionEpochs;
-
     // --- Cechy behawioralne i medyczne ---
     private Personality personality;
     private boolean isVaccinated;
@@ -28,22 +26,12 @@ public class Human extends Agent {
         this.isWearingMask = false;
         this.wantsHospital = false;
         this.isInHospital = false;
-        this.remainingInfectionEpochs = 0;
     }
 
     // --- Gettery i Settery ---
 
     public double getResistance() { return resistance; }
     public void setResistance(double resistance) { this.resistance = resistance; }
-
-    public int getRemainingInfectionEpochs() { return remainingInfectionEpochs; }
-    public void setRemainingInfectionEpochs(int remainingInfectionEpochs) { this.remainingInfectionEpochs = remainingInfectionEpochs; }
-
-    public void decrementInfectionTimer() {
-        if (this.remainingInfectionEpochs > 0) {
-            this.remainingInfectionEpochs--;
-        }
-    }
 
     public Personality getPersonality() { return personality; }
 

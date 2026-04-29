@@ -14,6 +14,7 @@ public abstract class Agent {
     private boolean isDead;
     private double naturalMortalityRate;
     private int lastReproductionEpoch;
+    private int remainingInfectionEpochs;
 
     // --- Stan epidemiczny ---
     private HealthStatus healthStatus;
@@ -29,6 +30,7 @@ public abstract class Agent {
         this.healthStatus = HealthStatus.HEALTHY;
         this.isDead = false;
         this.lastReproductionEpoch = 0;
+        this.remainingInfectionEpochs = 0;
     }
 
     public void incrementAge() {
@@ -37,6 +39,12 @@ public abstract class Agent {
 
     public boolean canBeInfected() {
         return !isDead && healthStatus != HealthStatus.SICK;
+    }
+
+    public void decrementInfectionTimer() {
+        if (this.remainingInfectionEpochs > 0) {
+            this.remainingInfectionEpochs--;
+        }
     }
 
     // --- Gettery i Settery ---
@@ -67,4 +75,8 @@ public abstract class Agent {
 
     public int getLastReproductionEpoch() { return lastReproductionEpoch; }
     public void setLastReproductionEpoch(int lastReproductionEpoch) { this.lastReproductionEpoch = lastReproductionEpoch; }
+
+    public int getRemainingInfectionEpochs() {return remainingInfectionEpochs; }
+
+    public void setRemainingInfectionEpochs(int remainingInfectionEpochs) {this.remainingInfectionEpochs = remainingInfectionEpochs; }
 }
