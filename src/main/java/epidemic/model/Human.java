@@ -1,27 +1,61 @@
 package epidemic.model;
 
-public class Human extends Agent{
+public class Human extends Agent {
+
+    // --- Unikalne cechy biologiczne człowieka ---
     private double resistance;
-    private int infectionDuration;
+
+    private int remainingInfectionEpochs;
+
+    // --- Cechy behawioralne i medyczne ---
     private Personality personality;
     private boolean isVaccinated;
     private boolean isWearingMask;
-    private boolean wantsMedicalCare;
 
-    public Human(Point2D position, int age, double naturalMortalityRate, double resistance, Personality personality) {
-        super(position, age, naturalMortalityRate);
+    private boolean wantsHospital;
+
+    private boolean isInHospital;
+
+    public Human(Point2D position, int age, double baseSpeed, double naturalMortalityRate,
+                 double resistance, Personality personality) {
+
+        super(position, age, SpeciesType.HUMAN, baseSpeed, naturalMortalityRate);
 
         this.resistance = resistance;
         this.personality = personality;
 
-        this.infectionDuration = 0;
         this.isVaccinated = false;
         this.isWearingMask = false;
-        this.wantsMedicalCare = false;
+        this.wantsHospital = false;
+        this.isInHospital = false;
+        this.remainingInfectionEpochs = 0;
     }
 
-    @Override
-    public boolean wantsHospital() {
-        return this.wantsMedicalCare;
+    // --- Gettery i Settery ---
+
+    public double getResistance() { return resistance; }
+    public void setResistance(double resistance) { this.resistance = resistance; }
+
+    public int getRemainingInfectionEpochs() { return remainingInfectionEpochs; }
+    public void setRemainingInfectionEpochs(int remainingInfectionEpochs) { this.remainingInfectionEpochs = remainingInfectionEpochs; }
+
+    public void decrementInfectionTimer() {
+        if (this.remainingInfectionEpochs > 0) {
+            this.remainingInfectionEpochs--;
+        }
     }
+
+    public Personality getPersonality() { return personality; }
+
+    public boolean isVaccinated() { return isVaccinated; }
+    public void setVaccinated(boolean vaccinated) { this.isVaccinated = vaccinated; }
+
+    public boolean isWearingMask() { return isWearingMask; }
+    public void setWearingMask(boolean wearingMask) { this.isWearingMask = wearingMask; }
+
+    public boolean wantsHospital() { return wantsHospital; }
+    public void setWantsHospital(boolean wantsHospital) { this.wantsHospital = wantsHospital; }
+
+    public boolean isInHospital() { return isInHospital; }
+    public void setIsInHospital(boolean isInHospital) { this.isInHospital = isInHospital; }
 }
