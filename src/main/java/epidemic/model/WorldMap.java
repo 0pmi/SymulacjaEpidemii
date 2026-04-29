@@ -1,9 +1,4 @@
-package epidemic.engine;
-
-import epidemic.model.Agent;
-import epidemic.model.Hospital;
-import epidemic.model.InfectionField;
-import epidemic.model.Point2D;
+package epidemic.model;
 
 import java.util.ArrayList;
 import java.util.List;

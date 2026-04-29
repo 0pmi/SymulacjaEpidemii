@@ -1,6 +1,6 @@
 package epidemic.managers;
 
-import epidemic.engine.WorldMap;
+import epidemic.model.WorldMap;
 
 public class MedicalManager {
     public void handleVaccinations(WorldMap world) {

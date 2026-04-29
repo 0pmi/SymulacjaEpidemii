@@ -1,6 +1,6 @@
 package epidemic.managers;
 
-import epidemic.engine.WorldMap;
+import epidemic.model.WorldMap;
 import epidemic.model.Agent;
 import java.util.List;
 

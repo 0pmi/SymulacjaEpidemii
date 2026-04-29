@@ -2,6 +2,7 @@ package epidemic.engine;
 
 import epidemic.managers.*;
 import epidemic.model.Virus;
+import epidemic.model.WorldMap;
 import epidemic.statistics.Statistics;
 
 public class SimulationEngine {
