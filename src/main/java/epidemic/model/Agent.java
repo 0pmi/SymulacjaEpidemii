@@ -49,6 +49,7 @@ public abstract class Agent {
             this.remainingInfectionEpochs--;
         }
     }
+    public void think(WorldContext context) {}
 
     // --- Gettery i Settery ---
 
@@ -85,4 +86,7 @@ public abstract class Agent {
 
     public MovementStrategy getMovementStrategy() {return movementStrategy; }
     public void setMovementStrategy(MovementStrategy strategy) {this.movementStrategy = strategy; }
+    public double getVirulence() {
+        return getSpeciesType().getBaseVirulence();
+    }
 }

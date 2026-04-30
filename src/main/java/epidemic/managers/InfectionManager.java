@@ -47,6 +47,7 @@ public class InfectionManager {
         if (spreader.getHealthStatus() == HealthStatus.CARRIER) {
             prob *= 0.5;
         }
+        prob *= spreader.getVirulence();
 
         double distance = spreader.getPosition().distanceTo(victim.getPosition());
         double distanceFactor = 1.0 - (distance / virus.getInfectionRadius());

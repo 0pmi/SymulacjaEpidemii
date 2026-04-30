@@ -41,7 +41,7 @@ public class WorldMap {
     }
 
     public List<Agent> getNeighbors(Point2D pos, double radius) {
-        return new ArrayList<>();
+        return spatialManager.getNearbyAgentsAtPos(pos, radius);
     }
 
     public List<Agent> getNeighborsForAgent(Agent agent, double radius) {
@@ -61,6 +61,7 @@ public class WorldMap {
     public void addHospital(Hospital hospital) {
         this.hospitals.add(hospital);
     }
+    public SpatialManager getSpatialManager() {return spatialManager;}
 
     public Hospital getHospitalAt(Point2D pos) {
         return hospitals.stream()

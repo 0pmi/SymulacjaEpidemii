@@ -8,7 +8,7 @@ public class Human extends Agent implements HospitalUser {
     private double resistance;
 
     // --- Cechy behawioralne i medyczne ---
-    private Personality personality;
+    private final Personality personality;
     private boolean isVaccinated;
     private boolean isWearingMask;
 
@@ -30,7 +30,11 @@ public class Human extends Agent implements HospitalUser {
         this.wantsHospital = false;
         this.isInHospital = false;
     }
-
+    
+    @Override
+    public void think(WorldContext context) {
+        personality.updateMentalState(this, context);
+    }
 
     // --- Gettery i Settery ---
 

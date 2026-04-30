@@ -18,7 +18,7 @@ public class MortalityManager {
         for (Agent agent : agents) {
             if (agent.isDead()) continue;
 
-            agent.incrementAge();
+            //agent.incrementAge();
 
             if (agent.getHealthStatus() == HealthStatus.SICK) {
                 processSickness(agent);

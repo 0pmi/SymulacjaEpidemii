@@ -81,7 +81,31 @@ public class SpatialManager {
         }
         return nearby;
     }
+    public List<Agent> getNearbyAgentsAtPos(Point2D centerPos, double radius) {
+        List<Agent> nearby = new ArrayList<>();
 
+        int startCol = (int) ((centerPos.x() - radius) / cellSize);
+        int endCol   = (int) ((centerPos.x() + radius) / cellSize);
+        int startRow = (int) ((centerPos.y() - radius) / cellSize);
+        int endRow   = (int) ((centerPos.y() + radius) / cellSize);
+
+        startCol = Math.max(0, startCol);
+        endCol   = Math.min(cols - 1, endCol);
+        startRow = Math.max(0, startRow);
+        endRow   = Math.min(rows - 1, endRow);
+
+        for (int i = startCol; i <= endCol; i++) {
+            for (int j = startRow; j <= endRow; j++) {
+                for (Agent potentialNeighbor : grid[i][j]) {
+                    double distance = calculateDistance(centerPos, potentialNeighbor.getPosition());
+                    if (distance <= radius) {
+                        nearby.add(potentialNeighbor);
+                    }
+                }
+            }
+        }
+        return nearby;
+    }
     private double calculateDistance(Point2D p1, Point2D p2) {
         double dx = p1.x() - p2.x();
         double dy = p1.y() - p2.y();
