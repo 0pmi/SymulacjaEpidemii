@@ -48,7 +48,7 @@ public class Main {
             Animal bat = factory.createAnimal(pos, 2, 1.5, SpeciesType.BAT, normalMove);
 
             // Pacjent Zero - jeden z nietoperzy jest zarażony
-            if (i == 0) {
+            if (i < 5) {
                 bat.setHealthStatus(HealthStatus.SICK);
                 bat.setRemainingInfectionEpochs(virus.getDefaultInfectionDuration());
             }
@@ -68,6 +68,6 @@ public class Main {
         // 7. Pętla Symulacji
         SimulationFrame frame = new SimulationFrame(engine, world);
         frame.start();
-        engine.getStats().exportToCSV("wyniki_symulacji.csv");
+
     }
 }

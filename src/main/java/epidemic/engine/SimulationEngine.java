@@ -45,7 +45,7 @@ public class SimulationEngine implements Subject {
         infectionManager.processInfections(world.getAgents(), world.getSpatialManager());
         medicalManager.processMedicalCare(world, context);
         reproductionManager.handleReproduction(world, world.getSpatialManager(), currentEpoch);
-        mortalityManager.processLifeCycles(world.getAgents());
+        mortalityManager.processLifeCycles(this.world, world.getAgents());
 
         world.applyChanges();
         notifyObservers();
@@ -74,11 +74,13 @@ public class SimulationEngine implements Subject {
     @Override
     public void notifyObservers() {
         List<Agent> agents = world.getAgents();
-        int healthy = (int) agents.stream().filter(a -> a.getHealthStatus() == HealthStatus.HEALTHY).count();
-        int sick = (int) agents.stream().filter(a -> a.getHealthStatus() == HealthStatus.SICK).count();
-        int recovered = (int) agents.stream().filter(a -> a.getHealthStatus() == HealthStatus.RECOVERED).count();
+        int healthy = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.HEALTHY).count();
+        int sick = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.SICK).count();
+        int recovered = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.RECOVERED).count();
+        int aliveTotal = (int) agents.stream().filter(a -> !a.isDead()).count();
+        int deadCount = agents.size() - aliveTotal;
 
-        EpochData data = new EpochData(currentEpoch, healthy, sick, recovered, 0, 0, agents.size());
+        EpochData data = new EpochData(currentEpoch, healthy, sick, recovered, deadCount, 0, aliveTotal);
         observers.forEach(o -> o.update(data));
     }
     public void setVaccineAvailable(boolean vaccineAvailable) {

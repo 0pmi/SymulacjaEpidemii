@@ -2,6 +2,7 @@ package epidemic.managers;
 
 import epidemic.model.Agent;
 import epidemic.model.HealthStatus;
+import epidemic.model.WorldMap;
 import epidemic.strategies.mortality.MortalityStrategy;
 
 import java.util.List;
@@ -14,7 +15,7 @@ public class MortalityManager {
         this.mortalityStrategy = mortalityStrategy;
     }
 
-    public void processLifeCycles(List<Agent> agents) {
+    public void processLifeCycles(WorldMap world, List<Agent> agents) {
         for (Agent agent : agents) {
             if (agent.isDead()) continue;
 
@@ -26,6 +27,9 @@ public class MortalityManager {
 
             if (!agent.isDead() && mortalityStrategy.shouldDieNaturally(agent)) {
                 agent.setDead(true);
+            }
+            if (agent.isDead()) {
+                world.removeAgent(agent);
             }
         }
     }
