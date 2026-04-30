@@ -1,5 +1,6 @@
 package epidemic.model;
 
+import epidemic.service.SpatialManager;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,53 +9,67 @@ public class WorldMap {
     private List<Hospital> hospitals;
     private int width;
     private int height;
-    private List<InfectionField> infectionFields;
+
+    private SpatialManager spatialManager;
+
     private List<Agent> agentsToAdd;
     private List<Agent> agentsToRemove;
 
-    public WorldMap(int width, int height) {
+    public WorldMap(int width, int height, double cellSize) {
         this.width = width;
         this.height = height;
         this.agents = new ArrayList<>();
         this.hospitals = new ArrayList<>();
-        this.infectionFields = new ArrayList<>();
         this.agentsToAdd = new ArrayList<>();
         this.agentsToRemove = new ArrayList<>();
-    }
-
-    public List<Agent> getNeighbors(Point2D pos, double radius) {
-        return new ArrayList<>(); // TODO:
+        this.spatialManager = new SpatialManager(width, height, cellSize);
     }
 
     public void addAgent(Agent agent) {
-        // TODO:
-    }
-
-    public Hospital getHospitalAt(Point2D pos) {
-        return null; // TODO
+        agentsToAdd.add(agent);
     }
 
     public void removeAgent(Agent agent) {
-        // TODO
+        agentsToRemove.add(agent);
     }
 
-    public void updateInfectionFields() {
-        // TODO
+    public void applyChanges() {
+        agents.addAll(agentsToAdd);
+        agentsToAdd.clear();
+        agents.removeAll(agentsToRemove);
+        agentsToRemove.clear();
     }
 
-    public List<InfectionField> getInfectionFieldsAt(Point2D pos) {
-        return new ArrayList<>(); // TODO
+    public List<Agent> getNeighbors(Point2D pos, double radius) {
+        return new ArrayList<>();
     }
 
-    public void addInfectionField(InfectionField field) {
-        // TODO
+    public List<Agent> getNeighborsForAgent(Agent agent, double radius) {
+        return spatialManager.getNearbyAgents(agent, radius);
     }
 
-    public List<Agent> getAgents() {
-        return agents;
+    public void rebuildSpatialIndex() {
+        spatialManager.rebuild(this);
     }
 
-    public List<Hospital> getHospitals() {
-        return hospitals;
+    // Gettery
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
+    public List<Agent> getAgents() { return agents; }
+    public List<Hospital> getHospitals() { return hospitals; }
+
+    public void addHospital(Hospital hospital) {
+        this.hospitals.add(hospital);
+    }
+
+    public Hospital getHospitalAt(Point2D pos) {
+        return hospitals.stream()
+                .filter(h -> h.getPosition().equals(pos))
+                .findFirst()
+                .orElse(null);
+    }
+    public boolean isWithinBounds(Point2D pos) {
+        return pos.x() >= 0 && pos.x() < width &&
+                pos.y() >= 0 && pos.y() < height;
     }
 }

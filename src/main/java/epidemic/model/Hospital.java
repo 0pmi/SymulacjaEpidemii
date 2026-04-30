@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Hospital {
-    // TODO: SHAPE
+    private Point2D position;
     private int capacity;
     private List<Agent> patients;
 
@@ -28,7 +28,7 @@ public class Hospital {
     public void releasePatient(Agent a) {
         patients.remove(a);
     }
-
+    public Point2D getPosition() { return position; }
     public List<Agent> getPatients() {
         return patients;
     }
