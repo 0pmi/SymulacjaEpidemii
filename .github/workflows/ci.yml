@@ -21,7 +21,7 @@ jobs:
           cache: 'maven'
 
       - name: Run Tests and Generate Coverage
-        run: mvn clean test jacoco:report
+        run: xvfb-run mvn clean test jacoco:report
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
