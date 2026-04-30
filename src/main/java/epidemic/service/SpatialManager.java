@@ -7,6 +7,11 @@ import epidemic.model.WorldMap;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Optymalizuje zapytania przestrzenne w symulacji poprzez podział mapy na logiczną siatkę (grid).
+ * Pozwala na błyskawiczne znajdowanie agentów w zadanym promieniu bez konieczności
+ * iterowania po całej populacji świata.
+ */
 public class SpatialManager {
 
     private final double cellSize;
@@ -29,8 +34,10 @@ public class SpatialManager {
     }
 
     /**
-     * Czyści siatkę i buduje ją na nowo na podstawie aktualnych pozycji agentów.
-     * Wywoływane raz na epokę przez SimulationEngine.
+     * Czyści siatkę i przypisuje agentów do odpowiednich komórek na podstawie ich bieżących koordynatów.
+     * Wywoływane obowiązkowo raz na epokę po zakończeniu fazy ruchu wszystkich agentów.
+     *
+     * @param worldMap Mapa świata zawierająca aktualną listę agentów.
      */
     public void rebuild(WorldMap worldMap) {
         for (int i = 0; i < cols; i++) {
@@ -53,6 +60,13 @@ public class SpatialManager {
         }
     }
 
+    /**
+     * Wyszukuje wszystkich żywych agentów w promieniu od danego agenta docelowego.
+     *
+     * @param centerAgent Agent stanowiący środek okręgu wyszukiwania. Wynik nie zawiera tego agenta.
+     * @param radius Promień wyszukiwania w jednostkach mapy.
+     * @return Lista znalezionych sąsiadów.
+     */
     public List<Agent> getNearbyAgents(Agent centerAgent, double radius) {
         List<Agent> nearby = new ArrayList<>();
         Point2D centerPos = centerAgent.getPosition();
@@ -81,6 +95,7 @@ public class SpatialManager {
         }
         return nearby;
     }
+
     public List<Agent> getNearbyAgentsAtPos(Point2D centerPos, double radius) {
         List<Agent> nearby = new ArrayList<>();
 
@@ -106,6 +121,7 @@ public class SpatialManager {
         }
         return nearby;
     }
+
     private double calculateDistance(Point2D p1, Point2D p2) {
         double dx = p1.x() - p2.x();
         double dy = p1.y() - p2.y();

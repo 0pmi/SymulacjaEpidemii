@@ -4,6 +4,7 @@ import epidemic.engine.SimulationEngine;
 import epidemic.factory.AgentFactory;
 import epidemic.gui.SimulationFrame;
 import epidemic.model.*;
+import epidemic.service.Config;
 import epidemic.strategies.decision.PanickedDecisionStrategy;
 import epidemic.strategies.decision.RationalDecisionStrategy;
 import epidemic.strategies.mortality.SigmoidMortalityStrategy;
@@ -11,63 +12,99 @@ import epidemic.strategies.movement.*;
 
 import java.util.Random;
 
+/**
+ * Główny punkt wejścia do aplikacji.
+ * Pełni rolę skryptu bootstrapującego (setup/init), konfigurując mapę,
+ * agentów, szpitale oraz silnik przed oddaniem kontroli do interfejsu graficznego.
+ */
 public class Main {
     public static void main(String[] args) {
-        // 1. Konfiguracja Świata i Wirusa
-        WorldMap world = new WorldMap(100, 100, 5.0);
-        Virus virus = new Virus(0.25, 8, 15);
+        // 1. Inicjalizacja konfiguracji
+        Config.load();
+        SpeciesType.initAllFromConfig();
+
+        // 2. Konfiguracja Świata i Wirusa
+        int width = Config.getInt("world.width", 100);
+        int height = Config.getInt("world.height", 100);
+        double cellSize = Config.getDouble("world.cellSize", 5.0);
+
+        WorldMap world = new WorldMap(width, height, cellSize);
+        Virus virus = new Virus(
+                Config.getDouble("virus.defaultProb", 0.25),
+                Config.getDouble("virus.defaultRadius", 3.5),
+                Config.getInt("virus.defaultDuration", 15)
+        );
+
         AgentFactory factory = new AgentFactory();
         Random random = new Random();
 
-        // 2. Przygotowanie Strategii Ruchu
+        // 3. Przygotowanie Strategii
         MovementStrategy seekHospital = new SeekHospitalStrategy();
         MovementStrategy distancing = new SocialDistancingStrategy();
         MovementStrategy normalMove = new RandomWalkStrategy();
 
-        // 3. Dodanie Szpitali
-        world.addHospital(new Hospital(50, new Point2D(20, 20)));
-        world.addHospital(new Hospital(50, new Point2D(80, 80)));
+        // 4. Dynamiczne dodawanie Szpitali
+        int hospitalCount = Config.getInt("hospital.count", 0);
+        int hospitalCap = Config.getInt("hospital.capacity", 50);
+        for (int i = 0; i < hospitalCount; i++) {
+            int hX = Config.getInt("hospital." + i + ".x", random.nextInt(width));
+            int hY = Config.getInt("hospital." + i + ".y", random.nextInt(height));
+            world.addHospital(new Hospital(hospitalCap, new Point2D(hX, hY)));
+        }
 
-        // 4. Zaludnianie Świata
-        for (int i = 0; i < 200; i++) {
-            Point2D pos = new Point2D(random.nextInt(100), random.nextInt(100));
+        // 5. Zaludnianie: Ludzie
+        int humanCount = Config.getInt("pop.humans", 450);
+        double rationalRatio = Config.getDouble("human.rationalRatio", 0.5);
+
+        for (int i = 0; i < humanCount; i++) {
+            Point2D pos = new Point2D(random.nextInt(width), random.nextInt(height));
             Personality personality;
-            if (i % 2 == 0) {
+
+            // Losowanie osobowości na podstawie proporcji (ratio)
+            if (random.nextDouble() < rationalRatio) {
                 personality = new Personality(new RationalDecisionStrategy(seekHospital, distancing, normalMove));
             } else {
                 personality = new Personality(new PanickedDecisionStrategy(distancing, normalMove, seekHospital));
             }
 
-            Human human = factory.createHuman(pos, 20 + random.nextInt(40), 1.0, personality, normalMove);
+            int age = Config.getInt("human.minAge", 20) + random.nextInt(Config.getInt("human.maxAgeRange", 40));
+            double speed = Config.getDouble("human.speed", 1.0);
+
+            Human human = factory.createHuman(pos, age, speed, personality, normalMove);
             world.addAgent(human);
         }
 
-        // 5. Dodanie Zwierząt
-        for (int i = 0; i < 10; i++) {
-            Point2D pos = new Point2D(random.nextInt(100), random.nextInt(100));
-            Animal bat = factory.createAnimal(pos, 2, 1.5, SpeciesType.BAT, normalMove);
+        // 6. Zaludnianie: Zwierzęta
+        spawnAnimals(world, factory, SpeciesType.BAT, Config.getInt("pop.bats", 10), true, virus, random);
+        spawnAnimals(world, factory, SpeciesType.RAT, Config.getInt("pop.rats", 10), true, virus, random);
+        spawnAnimals(world, factory, SpeciesType.DOG, Config.getInt("pop.dogs", 10), false, virus, random);
 
-            // Pacjent Zero - jeden z nietoperzy jest zarażony
-            if (i < 5) {
-                bat.setHealthStatus(HealthStatus.SICK);
-                bat.setRemainingInfectionEpochs(virus.getDefaultInfectionDuration());
-            }
-            world.addAgent(bat);
-        }
-
+        // Aplikacja początkowego stanu świata
         world.applyChanges();
 
-        // 6. Inicjalizacja Silnika
+        // 7. Inicjalizacja Silnika i GUI
         SimulationEngine engine = new SimulationEngine(
-                world,
-                virus,
-                new SigmoidMortalityStrategy(),
-                factory
+                world, virus, new SigmoidMortalityStrategy(), factory
         );
 
-        // 7. Pętla Symulacji
         SimulationFrame frame = new SimulationFrame(engine, world);
         frame.start();
+    }
 
+    private static void spawnAnimals(WorldMap world, AgentFactory factory, SpeciesType type,
+                                     int count, boolean startSick, Virus virus, Random random) {
+        double speed = Config.getDouble("animal.speed", 1.5);
+        int age = Config.getInt("animal.defaultAge", 2);
+
+        for (int i = 0; i < count; i++) {
+            Point2D pos = new Point2D(random.nextInt(world.getWidth()), random.nextInt(world.getHeight()));
+            Animal animal = factory.createAnimal(pos, age, speed, type, new RandomWalkStrategy());
+
+            if (startSick) {
+                animal.setHealthStatus(HealthStatus.SICK);
+                animal.setRemainingInfectionEpochs(virus.getDefaultInfectionDuration());
+            }
+            world.addAgent(animal);
+        }
     }
 }

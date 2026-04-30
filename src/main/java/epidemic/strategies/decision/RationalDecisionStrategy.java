@@ -3,8 +3,14 @@ package epidemic.strategies.decision;
 import epidemic.model.HealthStatus;
 import epidemic.model.Human;
 import epidemic.model.WorldContext;
+import epidemic.service.Config;
 import epidemic.strategies.movement.MovementStrategy;
 
+/**
+ * Strategia decyzyjna modelująca racjonalne podejście.
+ * Agent reaguje na zagrożenie proporcjonalnie, stosuje dystansowanie społeczne,
+ * gdy infekcje są wysokie, oraz udaje się do szpitala w celu szczepienia lub leczenia ciężkich objawów.
+ */
 public class RationalDecisionStrategy implements DecisionStrategy {
 
     private final MovementStrategy hospitalMovementStrategy;
@@ -22,28 +28,28 @@ public class RationalDecisionStrategy implements DecisionStrategy {
 
     @Override
     public void makeDecision(Human human, WorldContext world) {
-
-        boolean highInfectionRate = world.getInfectionPercentage() > 0.20;
-
+        // Racjonalny agent reaguje, gdy wskaźnik infekcji przekroczy rozsądny próg (domyślnie 20%)
+        boolean highInfectionRate = world.getInfectionPercentage() > Config.getDouble("rational.infectionThreshold", 0.20);
         human.setWearingMask(highInfectionRate);
 
-        if (human.getHealthStatus() == HealthStatus.SICK && human.getRemainingInfectionEpochs() < 5) {
+        // Udaje się do szpitala tylko, gdy jest chory i jego stan wymaga nagłej interwencji (końcówka choroby)
+        if (human.getHealthStatus() == HealthStatus.SICK &&
+                human.getRemainingInfectionEpochs() < Config.getInt("rational.hospitalEpochThreshold", 5)) {
             human.setWantsHospital(true);
             human.setMovementStrategy(hospitalMovementStrategy);
         }
-
+        // Udaje się do szpitala po szczepionkę, jeśli jest zdrowy, niesaszczepiony i szczepionka jest dostępna
         else if (world.isVaccineAvailable() && !human.isVaccinated() && human.getHealthStatus() == HealthStatus.HEALTHY) {
             human.setWantsHospital(true);
             human.setMovementStrategy(hospitalMovementStrategy);
         }
-
-        else if (highInfectionRate) {
-            human.setWantsHospital(false);
-            human.setMovementStrategy(distancingMovementStrategy);
-        }
         else {
             human.setWantsHospital(false);
-            human.setMovementStrategy(normalMovementStrategy);
+            if (highInfectionRate) {
+                human.setMovementStrategy(distancingMovementStrategy);
+            } else {
+                human.setMovementStrategy(normalMovementStrategy);
+            }
         }
     }
 }

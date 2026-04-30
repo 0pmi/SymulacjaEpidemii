@@ -1,5 +1,10 @@
 package epidemic.model;
 
+/**
+ * Kapsułkuje globalny stan symulacji w danej epoce.
+ * Obiekt ten jest przekazywany do agentów w fazie podejmowania decyzji (metoda think),
+ * zapobiegając ich bezpośredniemu sprzężeniu z silnikiem symulacji.
+ */
 public class WorldContext {
     private final double infectionPercentage;
     private final boolean vaccineAvailable;
@@ -13,19 +18,8 @@ public class WorldContext {
         this.mortalityRatio = mortalityRatio;
     }
 
-    public double getInfectionPercentage() {
-        return infectionPercentage;
-    }
-
-    public boolean isVaccineAvailable() {
-        return vaccineAvailable;
-    }
-
-    public int getCurrentEpoch() {
-        return currentEpoch;
-    }
-
-    public double getMortalityRatio() {
-        return mortalityRatio;
-    }
+    public double getInfectionPercentage() { return infectionPercentage; }
+    public boolean isVaccineAvailable() { return vaccineAvailable; }
+    public int getCurrentEpoch() { return currentEpoch; }
+    public double getMortalityRatio() { return mortalityRatio; }
 }

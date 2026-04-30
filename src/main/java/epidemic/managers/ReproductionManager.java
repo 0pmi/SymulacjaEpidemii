@@ -2,20 +2,31 @@ package epidemic.managers;
 
 import epidemic.factory.AgentFactory;
 import epidemic.model.*;
+import epidemic.service.Config;
 import epidemic.service.SpatialManager;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Menedżer nadzorujący biologiczny proces rozmnażania populacji.
+ * Poszukuje potencjalnych partnerów w bliskim sąsiedztwie i generuje potomstwo
+ * na podstawie wskaźników płodności oraz ograniczeń wiekowych.
+ */
 public class ReproductionManager {
 
     private final AgentFactory agentFactory;
-    private final double REPRODUCTION_CHANCE = 0.1;
-    private final int REPRODUCTION_COOLDOWN = 40;
+    private final double REPRODUCTION_CHANCE;
+    private final int REPRODUCTION_COOLDOWN;
 
     public ReproductionManager(AgentFactory agentFactory) {
         this.agentFactory = agentFactory;
+        this.REPRODUCTION_CHANCE = Config.getDouble("reproduction.chance", 0.1);
+        this.REPRODUCTION_COOLDOWN = Config.getInt("reproduction.cooldown", 40);
     }
 
+    /**
+     * Główny cykl reprodukcyjny przetwarzany w każdej epoce.
+     */
     public void handleReproduction(WorldMap world, SpatialManager spatialManager, int currentEpoch) {
         List<Agent> agents = world.getAgents();
 
@@ -24,16 +35,18 @@ public class ReproductionManager {
                 continue;
             }
 
-            List<Agent> partnersAtSameSpot = spatialManager.getNearbyAgents(parentA, 0.1);
+            double matingRange = Config.getDouble("reproduction.matingRange", 0.1);
+            List<Agent> partnersAtSameSpot = spatialManager.getNearbyAgents(parentA, matingRange);
 
             for (Agent parentB : partnersAtSameSpot) {
+                // Partner musi być innym agentem tego samego gatunku, gotowym do rozrodu
                 if (parentB != parentA &&
                         parentB.getSpeciesType() == parentA.getSpeciesType() &&
                         canParticipateInReproduction(parentB, currentEpoch)) {
 
                     if (ThreadLocalRandom.current().nextDouble() < REPRODUCTION_CHANCE) {
                         spawnOffspring(world, parentA, parentB, currentEpoch);
-                        break;
+                        break; // Tylko jedno potomstwo na epokę z danym partnerem
                     }
                 }
             }
@@ -59,7 +72,6 @@ public class ReproductionManager {
         if (baby != null) {
             a.setLastReproductionEpoch(currentEpoch);
             b.setLastReproductionEpoch(currentEpoch);
-
             world.addAgent(baby);
         }
     }

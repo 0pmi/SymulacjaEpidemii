@@ -1,5 +1,7 @@
 package epidemic.model;
 
+import epidemic.service.Config;
+
 public class InfectionField {
     private Point2D position;
     private double intensity;
@@ -12,6 +14,11 @@ public class InfectionField {
     }
 
     public void dissipate() {
-        // TODO:
+        double rate = Config.getDouble("infectionField.dissipationRate", 0.05);
+        this.intensity = Math.max(0, this.intensity - rate);
+
+        if (this.expirationTime > 0) {
+            this.expirationTime--;
+        }
     }
 }

@@ -3,18 +3,26 @@ package epidemic.engine;
 import epidemic.factory.AgentFactory;
 import epidemic.managers.*;
 import epidemic.model.*;
+import epidemic.service.Config;
 import epidemic.statistics.*;
 import epidemic.strategies.mortality.MortalityStrategy;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Główny silnik sterujący upływem czasu w symulacji.
+ * Orkiestruje pracę poszczególnych Menedżerów w ścisłej kolejności (Zachowanie -> Ruch -> Infekcje -> Medycyna -> Rozród -> Zgony).
+ * Powiadamia podpiętych obserwatorów o zmianach w ekosystemie na koniec każdej epoki.
+ */
 public class SimulationEngine implements Subject {
     private final WorldMap world;
     private final Virus virus;
     private final Statistics stats;
     private final List<Observer> observers = new ArrayList<>();
+
     private int currentEpoch = 0;
     private boolean vaccineAvailable = false;
+    private boolean paused = true;
 
     private final BehaviourManager behaviourManager;
     private final MovementManager movementManager;
@@ -27,7 +35,7 @@ public class SimulationEngine implements Subject {
         this.world = world;
         this.virus = virus;
         this.stats = new Statistics();
-        this.addObserver(this.stats);
+        this.addObserver(this.stats); // Statystyki domyślnie nasłuchują silnika
 
         this.behaviourManager = new BehaviourManager();
         this.movementManager = new MovementManager();
@@ -37,26 +45,45 @@ public class SimulationEngine implements Subject {
         this.mortalityManager = new MortalityManager(mortalityStrategy);
     }
 
+    /**
+     * Uruchamia pojedynczy cykl (epokę) symulacji.
+     * Wykonuje pełny przebieg logiki biznesowej dla wszystkich agentów.
+     */
     public void runNextEpoch() {
         WorldContext context = calculateContext();
 
+        // 1. Zbieranie informacji i decyzje
         behaviourManager.updateBehaviours(world, context);
+        // 2. Przemieszczanie po planszy
         movementManager.moveAgents(world);
+        // 3. Rozprzestrzenianie patogenu
         infectionManager.processInfections(world.getAgents(), world.getSpatialManager());
+        // 4. Interwencje medyczne w szpitalach
         medicalManager.processMedicalCare(world, context);
+        // 5. Powoływanie do życia nowego pokolenia
         reproductionManager.handleReproduction(world, world.getSpatialManager(), currentEpoch);
+        // 6. Przetwarzanie postępów choroby i ewentualnych zgonów
         mortalityManager.processLifeCycles(this.world, world.getAgents());
 
+        // 7. Aplikowanie zmian na mapie (dodawanie/usuwanie buforów agentów)
         world.applyChanges();
+
+        // 8. Podsumowanie i raportowanie
         notifyObservers();
         currentEpoch++;
-        if (currentEpoch % 12 == 0) {
+
+        // Okresowe starzenie się populacji (zależne od konfiguracji)
+        if (currentEpoch % Config.getInt("simulation.ageRate", 12) == 0){
             for (Agent a : world.getAgents()) {
                 a.incrementAge();
             }
         }
     }
 
+    /**
+     * Generuje obiekt kontekstu dla bieżącej epoki. Kontekst ten służy agentom
+     * jako wiedza o świecie zewnętrznym (np. do podejmowania decyzji o kwarantannie).
+     */
     private WorldContext calculateContext() {
         List<Agent> agents = world.getAgents();
         if (agents.isEmpty()) return new WorldContext(0, vaccineAvailable, currentEpoch, 0);
@@ -64,13 +91,15 @@ public class SimulationEngine implements Subject {
         long sick = agents.stream().filter(a -> a.getHealthStatus() == HealthStatus.SICK).count();
         double infectionRate = (double) sick / agents.size();
 
-        return new WorldContext(infectionRate, this.vaccineAvailable, currentEpoch, 0.01);
+        return new WorldContext(infectionRate, this.vaccineAvailable, currentEpoch, Config.getDouble("simulation.baseContextValue", 0.01));
     }
 
     @Override
     public void addObserver(Observer observer) { observers.add(observer); }
+
     @Override
     public void removeObserver(Observer observer) { observers.remove(observer); }
+
     @Override
     public void notifyObservers() {
         List<Agent> agents = world.getAgents();
@@ -83,8 +112,9 @@ public class SimulationEngine implements Subject {
         EpochData data = new EpochData(currentEpoch, healthy, sick, recovered, deadCount, 0, aliveTotal);
         observers.forEach(o -> o.update(data));
     }
-    public void setVaccineAvailable(boolean vaccineAvailable) {
-        this.vaccineAvailable = vaccineAvailable;
-    }
+
+    public void setVaccineAvailable(boolean vaccineAvailable) { this.vaccineAvailable = vaccineAvailable; }
     public Statistics getStats() { return stats; }
+    public boolean isPaused() { return paused; }
+    public void setPaused(boolean paused) { this.paused = paused; }
 }

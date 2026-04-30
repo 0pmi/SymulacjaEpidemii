@@ -1,5 +1,9 @@
 package epidemic.model;
 
+/**
+ * Niemutowalna klasa reprezentująca patogen w symulacji.
+ * Przechowuje podstawowe parametry zakaźności i czasu trwania choroby.
+ */
 public class Virus {
     private final double baseInfectionProbability;
     private final double infectionRadius;
