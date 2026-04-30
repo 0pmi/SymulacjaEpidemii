@@ -1,5 +1,7 @@
 package epidemic.model;
 
+import epidemic.strategies.movement.MovementStrategy;
+
 public class Human extends Agent {
 
     // --- Unikalne cechy biologiczne człowieka ---
@@ -14,10 +16,11 @@ public class Human extends Agent {
 
     private boolean isInHospital;
 
-    public Human(Point2D position, int age, double baseSpeed, double naturalMortalityRate,
-                 double resistance, Personality personality) {
+    public Human(Point2D position, int age, double baseSpeed,
+                 double resistance, Personality personality,
+                 MovementStrategy movementStrategy) {
 
-        super(position, age, SpeciesType.HUMAN, baseSpeed, naturalMortalityRate);
+        super(position, age, SpeciesType.HUMAN, baseSpeed, movementStrategy);
 
         this.resistance = resistance;
         this.personality = personality;
@@ -46,4 +49,15 @@ public class Human extends Agent {
 
     public boolean isInHospital() { return isInHospital; }
     public void setIsInHospital(boolean isInHospital) { this.isInHospital = isInHospital; }
+
+    @Override
+    public double getVulnerabilityMultiplier() {
+        double multiplier = 1.0;
+
+        if (isWearingMask()) multiplier *= 0.3;
+        if (isVaccinated()) multiplier *= 0.1;
+        multiplier *= (1.0 - getResistance());
+
+        return multiplier;
+    }
 }

@@ -1,17 +1,17 @@
 package epidemic.model;
 
 public class Virus {
-    private double virulence;
-    private int avgRecoveryTime;
-    private double baseMortalityRate;
+    private final double baseInfectionProbability;
+    private final double infectionRadius;
+    private final int defaultInfectionDuration;
 
-    public Virus(double virulence, int avgRecoveryTime, double baseMortalityRate) {
-        this.virulence = virulence;
-        this.avgRecoveryTime = avgRecoveryTime;
-        this.baseMortalityRate = baseMortalityRate;
+    public Virus(double baseInfectionProbability, double infectionRadius, int defaultInfectionDuration) {
+        this.baseInfectionProbability = baseInfectionProbability;
+        this.infectionRadius = infectionRadius;
+        this.defaultInfectionDuration = defaultInfectionDuration;
     }
 
-    public double calculateInfectionProb(double resistance) {
-        return 0.0; // TODO
-    }
+    public double getBaseInfectionProbability() { return baseInfectionProbability; }
+    public double getInfectionRadius() { return infectionRadius; }
+    public int getDefaultInfectionDuration() { return defaultInfectionDuration; }
 }

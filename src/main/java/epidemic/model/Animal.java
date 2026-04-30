@@ -6,8 +6,8 @@ public class Animal extends Agent {
     //private boolean isCarrierOnly;
     private double speciesVirulence;
 
-    public Animal(Point2D position, int age, SpeciesType speciesType, double baseSpeed, double naturalMortalityRate, boolean isCarrierOnly, double speciesVirulence) {
-        super(position, age, speciesType, baseSpeed, naturalMortalityRate);
+    public Animal(Point2D position, int age, SpeciesType speciesType, double baseSpeed, boolean isCarrierOnly, double speciesVirulence) {
+        super(position, age, speciesType, baseSpeed);
 
         //this.isCarrierOnly = isCarrierOnly;
         this.speciesVirulence = speciesVirulence;

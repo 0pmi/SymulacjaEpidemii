@@ -1,5 +1,7 @@
 package epidemic.model;
 
+import epidemic.strategies.movement.MovementStrategy;
+
 public abstract class Agent {
 
     // --- Dane przestrzenne i fizyka ruchu ---
@@ -7,6 +9,7 @@ public abstract class Agent {
     private Point2D currentTarget;
     private double baseSpeed;
     private double currentSpeed;
+    private MovementStrategy movementStrategy;
 
     // --- Biologia i cykl życia ---
     private final SpeciesType speciesType;
@@ -19,18 +22,18 @@ public abstract class Agent {
     // --- Stan epidemiczny ---
     private HealthStatus healthStatus;
 
-    public Agent(Point2D position, int age, SpeciesType speciesType, double baseSpeed, double naturalMortalityRate) {
+    public Agent(Point2D position, int age, SpeciesType speciesType, double baseSpeed, MovementStrategy movementStrategy) {
         this.position = position;
         this.currentTarget = position;
         this.age = age;
         this.speciesType = speciesType;
         this.baseSpeed = baseSpeed;
         this.currentSpeed = baseSpeed;
-        this.naturalMortalityRate = naturalMortalityRate;
         this.healthStatus = HealthStatus.HEALTHY;
         this.isDead = false;
         this.lastReproductionEpoch = 0;
         this.remainingInfectionEpochs = 0;
+        this.movementStrategy = movementStrategy;
     }
 
     public void incrementAge() {
@@ -65,9 +68,6 @@ public abstract class Agent {
     public boolean isDead() { return isDead; }
     public void setDead(boolean dead) { this.isDead = dead; }
 
-    public double getNaturalMortalityRate() { return naturalMortalityRate; }
-    public void setNaturalMortalityRate(double naturalMortalityRate) { this.naturalMortalityRate = naturalMortalityRate; }
-
     public double getBaseSpeed() { return baseSpeed; }
 
     public double getCurrentSpeed() { return currentSpeed; }
@@ -79,4 +79,10 @@ public abstract class Agent {
     public int getRemainingInfectionEpochs() {return remainingInfectionEpochs; }
 
     public void setRemainingInfectionEpochs(int remainingInfectionEpochs) {this.remainingInfectionEpochs = remainingInfectionEpochs; }
+    public double getVulnerabilityMultiplier() {
+        return 1.0;
+    }
+
+    public MovementStrategy getMovementStrategy() {return movementStrategy; }
+    public void setMovementStrategy(MovementStrategy strategy) {this.movementStrategy = strategy; }
 }

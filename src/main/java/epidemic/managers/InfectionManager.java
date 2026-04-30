@@ -7,14 +7,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class InfectionManager {
 
-    private final double baseInfectionProbability;
-    private final double infectionRadius;
-    private final int defaultInfectionDuration;
+    private final Virus virus;
 
-    public InfectionManager(double baseInfectionProbability, double infectionRadius, int defaultInfectionDuration) {
-        this.baseInfectionProbability = baseInfectionProbability;
-        this.infectionRadius = infectionRadius;
-        this.defaultInfectionDuration = defaultInfectionDuration;
+    public InfectionManager(Virus virus) {
+        this.virus = virus;
     }
 
     public void processInfections(List<Agent> agents, SpatialManager spatialManager) {
@@ -32,7 +28,7 @@ public class InfectionManager {
     }
 
     private void spreadToNeighbors(Agent spreader, SpatialManager spatialManager) {
-        List<Agent> nearbyAgents = spatialManager.getNearbyAgents(spreader, infectionRadius);
+        List<Agent> nearbyAgents = spatialManager.getNearbyAgents(spreader, virus.getInfectionRadius());
 
         for (Agent potentialVictim : nearbyAgents) {
             if (potentialVictim.canBeInfected()) {
@@ -46,27 +42,22 @@ public class InfectionManager {
     }
 
     private double calculateFinalProbability(Agent spreader, Agent victim) {
-        double prob = baseInfectionProbability;
+        double prob = virus.getBaseInfectionProbability();
 
         if (spreader.getHealthStatus() == HealthStatus.CARRIER) {
             prob *= 0.5;
         }
 
         double distance = spreader.getPosition().distanceTo(victim.getPosition());
-        double distanceFactor = 1.0 - (distance / infectionRadius);
+        double distanceFactor = 1.0 - (distance / virus.getInfectionRadius());
         prob *= distanceFactor;
-
-        if (victim instanceof Human h) {
-            if (h.isWearingMask()) prob *= 0.3;
-            if (h.isVaccinated()) prob *= 0.1;
-            prob *= (1.0 - h.getResistance());
-        }
+        prob *= victim.getVulnerabilityMultiplier();
 
         return Math.max(0, prob);
     }
 
     private void infect(Agent victim) {
         victim.setHealthStatus(HealthStatus.SICK);
-        victim.setRemainingInfectionEpochs(defaultInfectionDuration);
+        victim.setRemainingInfectionEpochs(virus.getDefaultInfectionDuration());
     }
 }

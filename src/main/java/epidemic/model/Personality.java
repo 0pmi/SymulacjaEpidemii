@@ -6,11 +6,9 @@ import epidemic.strategies.movement.MovementStrategy;
 public class Personality {
 
     private DecisionStrategy decisionStrategy;
-    private MovementStrategy movementStrategy;
 
-    public Personality(DecisionStrategy decisionStrategy, MovementStrategy initialMovementStrategy) {
+    public Personality(DecisionStrategy decisionStrategy) {
         this.decisionStrategy = decisionStrategy;
-        this.movementStrategy = initialMovementStrategy;
     }
 
     public void updateMentalState(Human human, WorldContext context) {
@@ -21,12 +19,5 @@ public class Personality {
 
     public DecisionStrategy getDecisionStrategy() {
         return decisionStrategy;
-    }
-    public MovementStrategy getMovementStrategy() {
-        return movementStrategy;
-    }
-
-    public void setMovementStrategy(MovementStrategy movementStrategy) {
-        this.movementStrategy = movementStrategy;
     }
 }

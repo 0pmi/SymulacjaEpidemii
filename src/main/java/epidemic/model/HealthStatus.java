@@ -4,6 +4,5 @@ public enum HealthStatus {
     HEALTHY,
     CARRIER,
     SICK,
-    RECOVERED,
-    DEAD;
+    RECOVERED;
 }
