@@ -1,21 +1,17 @@
 package epidemic.model;
 
+import epidemic.strategies.movement.MovementStrategy;
+
 public class Animal extends Agent {
 
-    // --- Unikalne cechy zwierząt w kontekście epidemii ---
-    //private boolean isCarrierOnly;
     private double speciesVirulence;
 
-    public Animal(Point2D position, int age, SpeciesType speciesType, double baseSpeed, boolean isCarrierOnly, double speciesVirulence) {
-        super(position, age, speciesType, baseSpeed);
+    public Animal(Point2D position, int age, SpeciesType speciesType, double baseSpeed,
+                  double speciesVirulence, MovementStrategy movementStrategy) {
 
-        //this.isCarrierOnly = isCarrierOnly;
+        super(position, age, speciesType, baseSpeed, movementStrategy);
         this.speciesVirulence = speciesVirulence;
     }
-
-    // --- Gettery i Settery ---
-    //public boolean isCarrierOnly() { return isCarrierOnly; }
-    //public void setCarrierOnly(boolean carrierOnly) { this.isCarrierOnly = carrierOnly; }
 
     public double getSpeciesVirulence() { return speciesVirulence; }
     public void setSpeciesVirulence(double speciesVirulence) { this.speciesVirulence = speciesVirulence; }
