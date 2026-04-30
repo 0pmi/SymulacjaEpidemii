@@ -4,32 +4,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Hospital {
-    private Point2D position;
-    private int capacity;
-    private List<Agent> patients;
+    private final int capacity;
+    private final List<HospitalUser> patients;
+    private final Point2D position;
 
-    public Hospital(int capacity) {
+    public Hospital(int capacity, Point2D position) {
         this.capacity = capacity;
+        this.position = position;
         this.patients = new ArrayList<>();
     }
 
-    public void applyTreatment(Human human) {
-        // TODO
-    }
-
-    public boolean addPatient(Agent a) {
+    public boolean addPatient(HospitalUser user) {
         if (patients.size() < capacity) {
-            patients.add(a);
+            patients.add(user);
             return true;
         }
         return false;
     }
-
-    public void releasePatient(Agent a) {
-        patients.remove(a);
+    public Point2D getPosition() {
+        return position;
     }
-    public Point2D getPosition() { return position; }
-    public List<Agent> getPatients() {
+    public List<HospitalUser> getPatients() {
         return patients;
     }
 }

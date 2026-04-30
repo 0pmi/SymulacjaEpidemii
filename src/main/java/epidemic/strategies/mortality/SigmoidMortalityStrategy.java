@@ -1,7 +1,7 @@
 package epidemic.strategies.mortality;
 
 import epidemic.model.Agent;
-import epidemic.model.Human;
+import epidemic.model.HospitalUser;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SigmoidMortalityStrategy implements MortalityStrategy {
@@ -13,14 +13,17 @@ public class SigmoidMortalityStrategy implements MortalityStrategy {
     @Override
     public boolean shouldDieFromDisease(Agent agent) {
         double currentLethality = baseDiseaseLethality;
-        if (agent instanceof Human human && human.isInHospital()) {
+
+        if (agent instanceof HospitalUser user && user.isInHospital()) {
             currentLethality *= 0.1;
         }
+
         return ThreadLocalRandom.current().nextDouble() < currentLethality;
     }
 
     @Override
     public boolean shouldDieNaturally(Agent agent) {
+
         double exponent = -k * (agent.getAge() - x0);
         double deathProbability = 1.0 / (1.0 + Math.exp(exponent));
 

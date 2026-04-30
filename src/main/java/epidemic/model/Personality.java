@@ -1,7 +1,6 @@
 package epidemic.model;
 
 import epidemic.strategies.decision.DecisionStrategy;
-import epidemic.strategies.movement.MovementStrategy;
 
 public class Personality {
 

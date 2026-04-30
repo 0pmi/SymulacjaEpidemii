@@ -2,7 +2,7 @@ package epidemic.model;
 
 import epidemic.strategies.movement.MovementStrategy;
 
-public class Human extends Agent {
+public class Human extends Agent implements HospitalUser {
 
     // --- Unikalne cechy biologiczne człowieka ---
     private double resistance;
@@ -31,6 +31,7 @@ public class Human extends Agent {
         this.isInHospital = false;
     }
 
+
     // --- Gettery i Settery ---
 
     public double getResistance() { return resistance; }
@@ -44,11 +45,22 @@ public class Human extends Agent {
     public boolean isWearingMask() { return isWearingMask; }
     public void setWearingMask(boolean wearingMask) { this.isWearingMask = wearingMask; }
 
-    public boolean wantsHospital() { return wantsHospital; }
     public void setWantsHospital(boolean wantsHospital) { this.wantsHospital = wantsHospital; }
 
-    public boolean isInHospital() { return isInHospital; }
-    public void setIsInHospital(boolean isInHospital) { this.isInHospital = isInHospital; }
+    @Override
+    public boolean isWantsHospital() {
+        return this.wantsHospital;
+    }
+
+    @Override
+    public boolean isInHospital() {
+        return this.isInHospital;
+    }
+
+    @Override
+    public void setIsInHospital(boolean status) {
+        this.isInHospital = status;
+    }
 
     @Override
     public double getVulnerabilityMultiplier() {
