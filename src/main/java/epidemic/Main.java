@@ -101,6 +101,7 @@ public class Main {
 
         SimulationFrame frame = new SimulationFrame(engine, world);
         frame.start();
+
     }
 
     private static void spawnAnimals(WorldMap world, AgentFactory factory, SpeciesType type,

@@ -19,7 +19,8 @@ public class SimulationEngine implements Subject {
     private final Virus virus;
     private final Statistics stats;
     private final List<Observer> observers = new ArrayList<>();
-
+    private int totalVirusDeaths = 0;
+    private int totalNaturalDeaths = 0;
     private int currentEpoch = 0;
     private boolean vaccineAvailable = false;
     private boolean paused = true;
@@ -63,14 +64,15 @@ public class SimulationEngine implements Subject {
         // 5. Powoływanie do życia nowego pokolenia
         reproductionManager.handleReproduction(world, world.getSpatialManager(), currentEpoch);
         // 6. Przetwarzanie postępów choroby i ewentualnych zgonów
-        mortalityManager.processLifeCycles(this.world, world.getAgents());
+        int newVirusDeaths = mortalityManager.processLifeCycles(world, world.getAgents());
+        int totalDeathsThisStep = (int) world.getAgents().stream().filter(Agent::isDead).count();
+        this.totalVirusDeaths += newVirusDeaths;
+        this.totalNaturalDeaths += (totalDeathsThisStep - newVirusDeaths);
 
-        // 7. Aplikowanie zmian na mapie (dodawanie/usuwanie buforów agentów)
+        // 7. Aplikowanie zmian na mapie oraz notyfikowanie observerów
+        notifyObservers();
         world.applyChanges();
         world.decayInfectionFields();
-
-        // 8. Podsumowanie i raportowanie
-        notifyObservers();
         currentEpoch++;
 
         // Okresowe starzenie się populacji (zależne od konfiguracji)
@@ -92,7 +94,8 @@ public class SimulationEngine implements Subject {
         long sick = agents.stream().filter(a -> a.getHealthStatus() == HealthStatus.SICK).count();
         double infectionRate = (double) sick / agents.size();
 
-        return new WorldContext(infectionRate, this.vaccineAvailable, currentEpoch, Config.getDouble("simulation.baseContextValue", 0.01));
+        return new WorldContext(infectionRate, this.vaccineAvailable, currentEpoch,
+                Config.getDouble("simulation.baseContextValue", 0.01));
     }
 
     @Override
@@ -104,16 +107,26 @@ public class SimulationEngine implements Subject {
     @Override
     public void notifyObservers() {
         List<Agent> agents = world.getAgents();
+
         int healthy = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.HEALTHY).count();
         int sick = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.SICK).count();
         int recovered = (int) agents.stream().filter(a -> !a.isDead() && a.getHealthStatus() == HealthStatus.RECOVERED).count();
         int aliveTotal = (int) agents.stream().filter(a -> !a.isDead()).count();
-        int deadCount = agents.size() - aliveTotal;
 
-        EpochData data = new EpochData(currentEpoch, healthy, sick, recovered, deadCount, 0, aliveTotal);
+        int cumulativeDead = totalNaturalDeaths + totalVirusDeaths;
+
+        EpochData data = new EpochData(
+                currentEpoch,
+                healthy,
+                sick,
+                recovered,
+                cumulativeDead,
+                totalVirusDeaths,
+                aliveTotal
+        );
+
         observers.forEach(o -> o.update(data));
     }
-
     public void setVaccineAvailable(boolean vaccineAvailable) { this.vaccineAvailable = vaccineAvailable; }
     public Statistics getStats() { return stats; }
     public boolean isPaused() { return paused; }

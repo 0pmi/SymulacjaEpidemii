@@ -26,14 +26,16 @@ public class MortalityManager {
      * @param world Stan mapy, służący m.in. do zlecania usunięcia ciał.
      * @param agents Lista agentów do przetworzenia.
      */
-    public void processLifeCycles(WorldMap world, List<Agent> agents) {
+    public int processLifeCycles(WorldMap world, List<Agent> agents) {
+        int virusDeathsThisEpoch = 0;
         for (Agent agent : agents) {
             if (agent.isDead()) continue;
 
-            // Zmieniono warunek, by uwzględnić zakażonych objawowo ORAZ nosicieli
             HealthStatus status = agent.getHealthStatus();
             if (status == HealthStatus.SICK || status == HealthStatus.CARRIER) {
-                processSickness(agent);
+                if (processSickness(agent)) {
+                    virusDeathsThisEpoch++;
+                }
             }
 
             if (!agent.isDead() && mortalityStrategy.shouldDieNaturally(agent)) {
@@ -44,24 +46,27 @@ public class MortalityManager {
                 world.removeAgent(agent);
             }
         }
+        return virusDeathsThisEpoch;
     }
 
     /**
      * Przetwarza cykl trwającej infekcji.
      * Uwaga: Nosiciele (CARRIER) zdrowieją, ale nie podlegają ryzyku zgonu z powodu choroby.
      */
-    private void processSickness(Agent agent) {
+    private boolean processSickness(Agent agent) {
         agent.decrementInfectionTimer();
 
         // Śmiertelność dotyczy tylko pełnoobjawowych (SICK) agentów
         if (agent.getHealthStatus() == HealthStatus.SICK && mortalityStrategy.shouldDieFromDisease(agent)) {
             agent.setDead(true);
-            return;
+            agent.setDiedFromVirus(true); // Flaga dla statystyk
+            return true;
         }
 
         // Jeśli agent przeżył, ale skończył mu się czas trwania infekcji - zyskuje odporność
         if (agent.getRemainingInfectionEpochs() <= 0) {
             agent.setHealthStatus(HealthStatus.RECOVERED);
         }
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 package epidemic.gui;
 
+import epidemic.charts.SimulationChartGenerator;
 import epidemic.engine.SimulationEngine;
 import epidemic.model.WorldMap;
 import epidemic.service.Config;
@@ -30,7 +31,7 @@ public class SimulationFrame extends JFrame {
         this.mapPanel = new MapPanel(world);
 
         setTitle("Sterowanie Symulacją Epidemii");
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
         JPanel infoPanel = new JPanel(new GridLayout(1, 5));
@@ -61,7 +62,10 @@ public class SimulationFrame extends JFrame {
                 System.out.println("Zamykanie GUI... Zapisywanie statystyk.");
                 String fileName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
                 engine.getStats().exportToCSV(fileName);
-                System.exit(0);
+
+                new Thread(() -> {
+                    SimulationChartGenerator.showResults(fileName);
+                }).start();
             }
         });
 

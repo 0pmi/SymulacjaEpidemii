@@ -21,7 +21,7 @@ public abstract class Agent implements Inspectable {
     private double naturalMortalityRate;
     private int lastReproductionEpoch;
     private int remainingInfectionEpochs;
-
+    private boolean diedFromVirus = false;
     private HealthStatus healthStatus;
 
     public Agent(Point2D position, int age, SpeciesType speciesType, double baseSpeed, MovementStrategy movementStrategy) {
@@ -106,7 +106,8 @@ public abstract class Agent implements Inspectable {
 
     public int getLastReproductionEpoch() { return lastReproductionEpoch; }
     public void setLastReproductionEpoch(int lastReproductionEpoch) { this.lastReproductionEpoch = lastReproductionEpoch; }
-
+    public boolean isDiedFromVirus() { return diedFromVirus; }
+    public void setDiedFromVirus(boolean diedFromVirus) { this.diedFromVirus = diedFromVirus; }
     public int getRemainingInfectionEpochs() {return remainingInfectionEpochs; }
 
     public void setRemainingInfectionEpochs(int remainingInfectionEpochs) {this.remainingInfectionEpochs = remainingInfectionEpochs; }
