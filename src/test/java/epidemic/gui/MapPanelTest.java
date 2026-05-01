@@ -33,7 +33,7 @@ class MapPanelTest {
         SimulationEngine mockEngine = mock(SimulationEngine.class);
         MapPanel panel = new MapPanel(mockWorld);
 
-        // Upewniamy się, że rejestracja nasłuchiwania nie zgłasza błędów
+        // Upewniam się, że rejestracja nasłuchiwania nie zgłasza błędów
         panel.setupMouseListener(mockEngine);
     }
 }

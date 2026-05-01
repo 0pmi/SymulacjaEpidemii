@@ -30,7 +30,9 @@ public class MortalityManager {
         for (Agent agent : agents) {
             if (agent.isDead()) continue;
 
-            if (agent.getHealthStatus() == HealthStatus.SICK) {
+            // Zmieniono warunek, by uwzględnić zakażonych objawowo ORAZ nosicieli
+            HealthStatus status = agent.getHealthStatus();
+            if (status == HealthStatus.SICK || status == HealthStatus.CARRIER) {
                 processSickness(agent);
             }
 
@@ -44,11 +46,15 @@ public class MortalityManager {
         }
     }
 
+    /**
+     * Przetwarza cykl trwającej infekcji.
+     * Uwaga: Nosiciele (CARRIER) zdrowieją, ale nie podlegają ryzyku zgonu z powodu choroby.
+     */
     private void processSickness(Agent agent) {
         agent.decrementInfectionTimer();
 
-        // Jeśli choroba okazała się śmiertelna, przerywa dalsze sprawdzanie stanu
-        if (mortalityStrategy.shouldDieFromDisease(agent)) {
+        // Śmiertelność dotyczy tylko pełnoobjawowych (SICK) agentów
+        if (agent.getHealthStatus() == HealthStatus.SICK && mortalityStrategy.shouldDieFromDisease(agent)) {
             agent.setDead(true);
             return;
         }

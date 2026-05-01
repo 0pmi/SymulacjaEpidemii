@@ -30,7 +30,7 @@ class SpeciesTypeTest {
 
     @Test
     void shouldInitializeSpeciesPropertiesFromConfig() {
-        // Kiedy wywołujemy metodę inicjalizacyjną
+        // Kiedy wywołuje metodę inicjalizacyjną
         SpeciesType.initAllFromConfig();
 
         // Wtedy wartości Enumów są poprawnie nadpisane

@@ -42,7 +42,7 @@ class RandomWalkStrategyTest {
         Point2D startPosition = new Point2D(10, 10);
         when(mockAgent.getPosition()).thenReturn(startPosition);
 
-        // Ponieważ algorytm jest losowy, wykonujemy go wielokrotnie, aby upewnić się, że nigdy nie wychodzi poza ramy
+        // Ponieważ algorytm jest losowy, wykonuję go wielokrotnie, aby upewnić się, że nigdy nie wychodzi poza ramy
         for (int i = 0; i < 100; i++) {
             Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
 

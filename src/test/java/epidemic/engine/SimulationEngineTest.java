@@ -56,7 +56,7 @@ class SimulationEngineTest {
         Observer mockObserver = mock(Observer.class);
         engine.addObserver(mockObserver);
 
-        // Zapobiegamy wywalaniu się na agentach podczas logiki notifyObservers
+        // Zapobiega wywalaniu się na agentach podczas logiki notifyObservers
         when(mockWorld.getAgents()).thenReturn(new ArrayList<>());
 
         engine.runNextEpoch();
@@ -71,7 +71,6 @@ class SimulationEngineTest {
         Agent mockAgent = mock(Agent.class);
         when(mockWorld.getAgents()).thenReturn(List.of(mockAgent));
 
-        // --- DODANE: Uzbrojenie mocka, by przetrwał przejście przez Menedżerów ---
         MovementStrategy mockStrategy = mock(MovementStrategy.class);
         when(mockAgent.getMovementStrategy()).thenReturn(mockStrategy);
         when(mockStrategy.calculateNextPosition(any(), any())).thenReturn(new Point2D(0, 0));
@@ -79,7 +78,6 @@ class SimulationEngineTest {
         when(mockAgent.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
         when(mockAgent.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
         when(mockAgent.isDead()).thenReturn(false);
-        // --------------------------------------------------------------------------
 
         // Epoka 0 (po wykonaniu runNextEpoch, currentEpoch rośnie do 1)
         engine.runNextEpoch();
@@ -97,9 +95,7 @@ class SimulationEngineTest {
         engine.setPaused(false);
         assertFalse(engine.isPaused());
 
-        // Możemy po prostu upewnić się, że nie rzuca błędu
         engine.setVaccineAvailable(true);
-        // Gdy uruchomi epokę i wyliczy kontekst, nie wyrzuci błędu o szczepionce.
         engine.runNextEpoch();
     }
 }

@@ -57,7 +57,7 @@ public class SimulationEngine implements Subject {
         // 2. Przemieszczanie po planszy
         movementManager.moveAgents(world);
         // 3. Rozprzestrzenianie patogenu
-        infectionManager.processInfections(world.getAgents(), world.getSpatialManager());
+        infectionManager.processInfections(world);
         // 4. Interwencje medyczne w szpitalach
         medicalManager.processMedicalCare(world, context);
         // 5. Powoływanie do życia nowego pokolenia
@@ -67,6 +67,7 @@ public class SimulationEngine implements Subject {
 
         // 7. Aplikowanie zmian na mapie (dodawanie/usuwanie buforów agentów)
         world.applyChanges();
+        world.decayInfectionFields();
 
         // 8. Podsumowanie i raportowanie
         notifyObservers();

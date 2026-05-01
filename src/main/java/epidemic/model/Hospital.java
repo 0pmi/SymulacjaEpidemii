@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Hospital implements Inspectable {
+    public int getCapacity() {
+        return capacity;
+    }
+
     private final int capacity;
     private final List<HospitalUser> patients;
     private final Point2D position;

@@ -1,7 +1,10 @@
 package epidemic.model;
 
+import epidemic.service.Config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -74,5 +77,37 @@ class WorldMapTest {
         assertFalse(worldMap.isWithinBounds(new Point2D(50, -1)));
         assertFalse(worldMap.isWithinBounds(new Point2D(100, 50))); // granica to 99
         assertFalse(worldMap.isWithinBounds(new Point2D(50, 100)));
+    }
+
+    @Test
+    void shouldAddAndRetrieveInfectionField() {
+        WorldMap map = new WorldMap(100, 100, 5.0);
+        Point2D pos = new Point2D(10, 20); // Zmiana na wartości całkowite (int)
+
+        map.addOrRefreshInfectionField(pos, 0.8);
+
+        InfectionField retrieved = map.getFieldAt(new Point2D(10, 20));
+        assertNotNull(retrieved);
+        assertEquals(0.8, retrieved.getInfectivity());
+        assertEquals(1, map.getActiveFields().size());
+    }
+
+    @Test
+    void shouldDecayAndRemoveExpiredFields() {
+        try (MockedStatic<Config> mockedConfig = Mockito.mockStatic(Config.class)) {
+            mockedConfig.when(() -> Config.getInt("infectionField.defaultExpiration", 10)).thenReturn(1);
+            mockedConfig.when(() -> Config.getDouble("infectionField.dissipationRate", 0.05)).thenReturn(0.5);
+            mockedConfig.when(() -> Config.getDouble("infectionField.minInfectivity", 0.01)).thenReturn(0.01);
+
+            WorldMap map = new WorldMap(100, 100, 5.0);
+            map.addOrRefreshInfectionField(new Point2D(5, 5), 0.5);
+
+            assertEquals(1, map.getActiveFields().size());
+
+            // Ponieważ expiration wynosi 1, po jednym decay() spadnie do 0 i powinno zniknąć
+            map.decayInfectionFields();
+
+            assertEquals(0, map.getActiveFields().size(), "Wygasłe pola powinny zostać usunięte z mapy");
+        }
     }
 }

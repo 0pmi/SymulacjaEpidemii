@@ -8,8 +8,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Złożony menedżer odpowiadający za mechanikę rozprzestrzeniania się patogenu.
- * Analizuje siatkę przestrzenną, aby odszukać sąsiadów wokół nosicieli i chorych,
- * a następnie ewaluuje prawdopodobieństwo zarażenia na podstawie wektorów odległości i podatności.
+ * Realizuje dwa wektory zakażeń:
+ * 1. Bezpośredni (kropelkowy) na podstawie odległości (SpatialManager).
+ * 2. Pośredni (aerozolowy) na podstawie stacjonarnych pól infekcji na mapie (WorldMap).
  */
 public class InfectionManager {
 
@@ -20,16 +21,38 @@ public class InfectionManager {
     }
 
     /**
-     * Główna metoda wywoływana w pętli symulacji. Przeszuka całą populację w celu znalezienia siewców,
-     * a następnie podejmie próbę rozsiania wirusa w ich pobliżu.
+     * Przetwarza wektory zakażeń dla całej populacji w danej epoce.
      *
-     * @param agents Lista wszystkich agentów w symulacji.
-     * @param spatialManager Moduł udostępniający szybkie zapytania przestrzenne.
+     * @param world Stan mapy zawierający agentów oraz strefy skażonego powietrza.
      */
-    public void processInfections(List<Agent> agents, SpatialManager spatialManager) {
+    public void processInfections(WorldMap world) {
+        List<Agent> agents = world.getAgents();
+        SpatialManager spatialManager = world.getSpatialManager();
+
         for (Agent agent : agents) {
+
+            // WEKTOR 1: Rozprzestrzenianie bezpośrednie i tworzenie aerozoli
             if (canSpreadVirus(agent)) {
                 spreadToNeighbors(agent, spatialManager);
+
+                // Tworzenie stacjonarnej chmury zakaźnej (InfectionField)
+                double fieldStrength = virus.getBaseInfectionProbability() * Config.getDouble("infectionField.aerosolMultiplier", 0.3);
+                if (agent.getHealthStatus() == HealthStatus.CARRIER) {
+                    fieldStrength *= Config.getDouble("infection.carrierMultiplier", 0.5);
+                }
+                world.addOrRefreshInfectionField(agent.getPosition(), fieldStrength);
+            }
+
+            // WEKTOR 2: Zarażenie drogą powietrzną (bez kontaktu z chorym)
+            if (agent.canBeInfected()) {
+                InfectionField field = world.getFieldAt(agent.getPosition());
+                if (field != null) {
+                    // Szansa na zakażenie zależy od gęstości chmury i podatności agenta (np. czy nosi maskę)
+                    double prob = field.getInfectivity() * agent.getVulnerabilityMultiplier();
+                    if (ThreadLocalRandom.current().nextDouble() < prob) {
+                        infect(agent);
+                    }
+                }
             }
         }
     }
@@ -56,8 +79,6 @@ public class InfectionManager {
 
     /**
      * Kompiluje ostateczne prawdopodobieństwo zakażenia w danym kontakcie.
-     * Składa się na nie: bazowa siła wirusa, modyfikatory nosiciela (np. bezobjawowi rozsiewają słabiej),
-     * fizyczna odległość na siatce oraz własna podatność ofiary (np. maseczki, odporność).
      */
     private double calculateFinalProbability(Agent spreader, Agent victim) {
         double prob = virus.getBaseInfectionProbability();
@@ -69,7 +90,6 @@ public class InfectionManager {
         prob *= spreader.getVirulence();
 
         double distance = spreader.getPosition().distanceTo(victim.getPosition());
-        // Zabezpieczenie logiczne - zakłada, że ofiara jest znaleziona w promieniu wirusa
         double distanceFactor = 1.0 - (distance / virus.getInfectionRadius());
         prob *= distanceFactor;
 
@@ -78,8 +98,19 @@ public class InfectionManager {
         return Math.max(0, prob);
     }
 
+    /**
+     * Zmienia status zdrowego agenta po udanej infekcji.
+     * Losuje, czy infekcja przebiega objawowo (SICK), czy bezobjawowo (CARRIER).
+     */
     private void infect(Agent victim) {
-        victim.setHealthStatus(HealthStatus.SICK);
+        double carrierProb = Config.getDouble("infection.carrierProbability", 0.2);
+
+        if (ThreadLocalRandom.current().nextDouble() < carrierProb) {
+            victim.setHealthStatus(HealthStatus.CARRIER);
+        } else {
+            victim.setHealthStatus(HealthStatus.SICK);
+        }
+
         victim.setRemainingInfectionEpochs(virus.getDefaultInfectionDuration());
     }
 }

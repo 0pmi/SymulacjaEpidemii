@@ -70,7 +70,7 @@ class MovementManagerTest {
 
         movementManager.moveAgents(mockWorld);
 
-        // Upewniamy się, że nie wywołano logiki ruchu dla pacjenta
+        // Upewniam się, że nie wywołano logiki ruchu dla pacjenta
         verify(mockPatient, never()).getMovementStrategy();
     }
 

@@ -16,23 +16,30 @@ import static org.mockito.Mockito.*;
 class InfectionManagerTest {
 
     private MockedStatic<Config> mockedConfig;
-    private Virus mockVirus;
     private InfectionManager manager;
+    private Virus mockVirus;
+    private WorldMap mockWorld;
     private SpatialManager mockSpatialManager;
 
     @BeforeEach
     void setUp() {
         mockedConfig = Mockito.mockStatic(Config.class);
-        mockedConfig.when(() -> Config.getDouble("infection.carrierMultiplier", 0.5)).thenReturn(0.5);
+        // Parametry promujące zakażenia dla celów testu (100% szans)
+        mockedConfig.when(() -> Config.getDouble("infectionField.aerosolMultiplier", 0.3)).thenReturn(1.0);
+        mockedConfig.when(() -> Config.getDouble("infection.carrierMultiplier", 0.5)).thenReturn(1.0);
+        mockedConfig.when(() -> Config.getDouble("infection.carrierProbability", 0.2)).thenReturn(0.0); // Zawsze SICK
+        mockedConfig.when(() -> Config.getInt("virus.defaultDuration", 30)).thenReturn(30);
 
         mockVirus = mock(Virus.class);
-        when(mockVirus.getInfectionRadius()).thenReturn(10.0);
-        // Ustalamy bazowe prawdobopodobieństwo na tak wysokie, aby zawsze zarażało dla celów testu
-        when(mockVirus.getBaseInfectionProbability()).thenReturn(1000.0);
-        when(mockVirus.getDefaultInfectionDuration()).thenReturn(14);
+        when(mockVirus.getBaseInfectionProbability()).thenReturn(1.0);
+        when(mockVirus.getInfectionRadius()).thenReturn(5.0);
+        when(mockVirus.getDefaultInfectionDuration()).thenReturn(30);
+
+        mockWorld = mock(WorldMap.class);
+        mockSpatialManager = mock(SpatialManager.class);
+        when(mockWorld.getSpatialManager()).thenReturn(mockSpatialManager);
 
         manager = new InfectionManager(mockVirus);
-        mockSpatialManager = mock(SpatialManager.class);
     }
 
     @AfterEach
@@ -41,37 +48,51 @@ class InfectionManagerTest {
     }
 
     @Test
-    void shouldNotSpreadIfAgentIsDeadOrHealthy() {
-        Agent deadAgent = mock(Agent.class);
-        when(deadAgent.isDead()).thenReturn(true);
-
-        Agent healthyAgent = mock(Agent.class);
-        when(healthyAgent.isDead()).thenReturn(false);
-        when(healthyAgent.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
-
-        manager.processInfections(List.of(deadAgent, healthyAgent), mockSpatialManager);
-
-        verify(mockSpatialManager, never()).getNearbyAgents(any(), anyDouble());
-    }
-
-    @Test
-    void shouldInfectVulnerableNeighbor() {
-        Agent spreader = mock(Agent.class);
-        when(spreader.isDead()).thenReturn(false);
-        when(spreader.getHealthStatus()).thenReturn(HealthStatus.SICK);
-        when(spreader.getPosition()).thenReturn(new Point2D(0, 0));
-        when(spreader.getVirulence()).thenReturn(1.0);
+    void shouldLeaveInfectionFieldAndInfectDirectly() {
+        Agent sickAgent = mock(Agent.class);
+        when(sickAgent.isDead()).thenReturn(false);
+        when(sickAgent.getHealthStatus()).thenReturn(HealthStatus.SICK);
+        when(sickAgent.getPosition()).thenReturn(new Point2D(10, 10));
+        when(sickAgent.getVirulence()).thenReturn(1.0);
 
         Agent victim = mock(Agent.class);
         when(victim.canBeInfected()).thenReturn(true);
-        when(victim.getPosition()).thenReturn(new Point2D(5, 5)); // Dystans < 10
+        when(victim.getPosition()).thenReturn(new Point2D(10, 10)); // Na tym samym polu
         when(victim.getVulnerabilityMultiplier()).thenReturn(1.0);
 
-        when(mockSpatialManager.getNearbyAgents(spreader, 10.0)).thenReturn(List.of(victim));
+        when(mockWorld.getAgents()).thenReturn(List.of(sickAgent, victim));
+        when(mockSpatialManager.getNearbyAgents(sickAgent, 5.0)).thenReturn(List.of(victim));
 
-        manager.processInfections(List.of(spreader), mockSpatialManager);
+        manager.processInfections(mockWorld);
 
+        // Chory agent powienien zostawić chmurę wirusa na mapie
+        verify(mockWorld).addOrRefreshInfectionField(eq(new Point2D(10, 10)), anyDouble());
+
+        // Ofiara powinna zostać zakażona bezpośrednio
         verify(victim).setHealthStatus(HealthStatus.SICK);
-        verify(victim).setRemainingInfectionEpochs(14);
+        verify(victim).setRemainingInfectionEpochs(30);
+    }
+
+    @Test
+    void shouldInfectFromAirborneField() {
+        Agent healthyAgent = mock(Agent.class);
+        when(healthyAgent.isDead()).thenReturn(false);
+        when(healthyAgent.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        when(healthyAgent.canBeInfected()).thenReturn(true);
+        when(healthyAgent.getPosition()).thenReturn(new Point2D(20, 20));
+        when(healthyAgent.getVulnerabilityMultiplier()).thenReturn(1.0); // Brak maski
+
+        // Tworzymy silną chmurę zakaźną na polu agenta
+        InfectionField mockField = mock(InfectionField.class);
+        when(mockField.getInfectivity()).thenReturn(1.0); // 100% szans
+
+        when(mockWorld.getAgents()).thenReturn(List.of(healthyAgent));
+        when(mockWorld.getFieldAt(any(Point2D.class))).thenReturn(mockField);
+
+        manager.processInfections(mockWorld);
+
+        // Weryfikacja: agent zdrowy, bez bezpośredniego kontaktu z chorym, zaraził się z powietrza
+        verify(healthyAgent).setHealthStatus(HealthStatus.SICK);
+        verify(healthyAgent).setRemainingInfectionEpochs(30);
     }
 }

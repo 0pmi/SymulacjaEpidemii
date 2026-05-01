@@ -38,11 +38,6 @@ class MortalityManagerTest {
     @Test
     void shouldKillAndRemoveAgentIfNaturallyDead() {
         Agent healthyAgent = mock(Agent.class);
-
-        // Dopasowanie do 3 wywołań w kodzie Menedżera:
-        // 1. Na starcie pętli -> musi żyć (false)
-        // 2. Przed sprawdzeniem śmierci naturalnej -> musi żyć (false)
-        // 3. Po wywołaniu setDead(true), przy ściąganiu z mapy -> uznajemy go za martwego (true)
         when(healthyAgent.isDead()).thenReturn(false, false, true);
         when(healthyAgent.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
         when(mockStrategy.shouldDieNaturally(healthyAgent)).thenReturn(true);
@@ -59,7 +54,6 @@ class MortalityManagerTest {
         when(sickAgent.isDead()).thenReturn(false);
         when(sickAgent.getHealthStatus()).thenReturn(HealthStatus.SICK);
         when(mockStrategy.shouldDieFromDisease(sickAgent)).thenReturn(false);
-
         when(sickAgent.getRemainingInfectionEpochs()).thenReturn(0);
 
         manager.processLifeCycles(mockWorld, List.of(sickAgent));
@@ -72,11 +66,6 @@ class MortalityManagerTest {
     @Test
     void shouldKillFromDisease() {
         Agent sickAgent = mock(Agent.class);
-
-        // Dopasowanie do 3 wywołań w kodzie Menedżera:
-        // 1. Na starcie pętli -> musi żyć (false)
-        // 2. Po wejściu w `processSickness` i śmierci od choroby -> jest już martwy (true)
-        // 3. Przy ściąganiu z mapy -> uznajemy go za martwego (true)
         when(sickAgent.isDead()).thenReturn(false, true, true);
         when(sickAgent.getHealthStatus()).thenReturn(HealthStatus.SICK);
         when(mockStrategy.shouldDieFromDisease(sickAgent)).thenReturn(true);
@@ -86,5 +75,21 @@ class MortalityManagerTest {
         verify(sickAgent).decrementInfectionTimer();
         verify(sickAgent).setDead(true);
         verify(mockWorld).removeAgent(sickAgent);
+    }
+
+    @Test
+    void shouldRecoverCarrierWithoutTestingForDiseaseDeath() {
+        Agent carrierAgent = mock(Agent.class);
+        when(carrierAgent.isDead()).thenReturn(false);
+        when(carrierAgent.getHealthStatus()).thenReturn(HealthStatus.CARRIER);
+        when(carrierAgent.getRemainingInfectionEpochs()).thenReturn(0);
+
+        manager.processLifeCycles(mockWorld, List.of(carrierAgent));
+
+        verify(carrierAgent).decrementInfectionTimer();
+        verify(carrierAgent).setHealthStatus(HealthStatus.RECOVERED);
+        // Upewniam się, że dla nosicieli nie jest wołana ocena zgonu z powodu choroby
+        verify(mockStrategy, never()).shouldDieFromDisease(carrierAgent);
+        verify(carrierAgent, never()).setDead(true);
     }
 }
