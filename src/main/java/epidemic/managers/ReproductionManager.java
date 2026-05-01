@@ -16,7 +16,6 @@ public class ReproductionManager {
 
     private final AgentFactory agentFactory;
     private final double REPRODUCTION_CHANCE;
-    // Zmienne przechowujące widełki cooldownu z pliku config
     private final int COOLDOWN_MIN;
     private final int COOLDOWN_MAX;
 
@@ -59,7 +58,7 @@ public class ReproductionManager {
 
     /**
      * Sprawdza, czy agent spełnia warunki zdrowotne, wiekowe oraz czasowe do reprodukcji.
-     * Dodano mechanizm Jitter - wymagany czas odpoczynku jest losowany w locie.
+     * Wymagany czas odpoczynku jest losowany w locie.
      */
     private boolean canParticipateInReproduction(Agent agent, int currentEpoch) {
         if (agent.isDead() || agent.getHealthStatus() == HealthStatus.SICK) {

@@ -36,7 +36,7 @@ public class MapPanel extends JPanel {
         this.drawingPanel = new DrawingPanel();
         add(drawingPanel, BorderLayout.CENTER);
 
-        // --- PRAWA STRONA: ZAAWANSOWANY PANEL INFORMACYJNY ---
+        // --- PRAWA STRONA: PANEL INFORMACYJNY ---
         this.inspectorPanel = new InspectorPanel();
         JScrollPane scrollPane = new JScrollPane(inspectorPanel);
         scrollPane.setPreferredSize(new Dimension(280, 0)); // Stała szerokość panelu
@@ -64,18 +64,18 @@ public class MapPanel extends JPanel {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Rysowanie pól infekcji (Aerozoli) - tworzy piękny efekt mgły / Heatmapy
+            // Rysowanie pól infekcji
             int maxAlpha = Config.getInt("gui.infectionFieldMaxAlpha", 150);
             double alphaMultiplier = Config.getDouble("gui.infectionFieldAlphaMultiplier", 250.0);
 
             for (InfectionField field : world.getActiveFields()) {
                 Point2D pos = field.getPosition();
 
-                // Przeliczamy siłę infekcji na przezroczystość (alpha) koloru czerwonego
+                // Przelicza siłę infekcji na przezroczystość (alpha) koloru czerwonego
                 int alpha = (int) Math.min(maxAlpha, (field.getInfectivity() * alphaMultiplier));
                 if (alpha > 0) {
                     g2.setColor(new Color(255, 0, 0, alpha));
-                    // Rysujemy mgłę
+                    // Rysuje mgłę
                     g2.fillRect((int)pos.x() * scale, (int)pos.y() * scale, scale, scale);
                 }
             }
@@ -119,10 +119,10 @@ public class MapPanel extends JPanel {
                     g2.setStroke(oldStroke); // Przywróć poprzedni pędzel
                 }
 
-                // Oznaczenie zaznaczonego agenta (Inspektor)
+                // Oznaczenie zaznaczonego agenta
                 if (currentlyInspected == agent) {
                     g2.setColor(Color.BLACK);
-                    // Rysujemy większy okrąg otaczający agenta
+                    // Rysuje większy okrąg otaczający agenta
                     g2.drawOval(pos.x() * scale - size, pos.y() * scale - size, size * 2, size * 2);
                 }
             }
@@ -149,7 +149,7 @@ public class MapPanel extends JPanel {
                 int mapY = e.getY() / scale;
                 Point2D clickPos = new Point2D(mapX, mapY);
 
-                currentlyInspected = null; // Reset zaznaczenia
+                currentlyInspected = null;
 
                 // 1. Sprawdzenie kliknięcia w infrastrukturę szpitalną
                 for (Hospital hospital : world.getHospitals()) {
@@ -171,8 +171,7 @@ public class MapPanel extends JPanel {
                                 .orElse(null);
                     }
                 }
-
-                // Wymuszenie odświeżenia paneli (celownik na mapie + dane z boku)
+                // Wymuszenie odświeżenia paneli
                 repaint();
             }
         });
@@ -253,7 +252,7 @@ public class MapPanel extends JPanel {
 
             if (agent instanceof Human human && human.isHostile()) {
                 JLabel hostileLabel = new JLabel("Status: WŚCIEKŁY!");
-                hostileLabel.setForeground(Color.BLACK); // Lub ciemno-czerwony
+                hostileLabel.setForeground(Color.BLACK);
                 hostileLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
                 add(hostileLabel);
             }

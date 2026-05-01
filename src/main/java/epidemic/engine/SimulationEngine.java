@@ -75,7 +75,7 @@ public class SimulationEngine implements Subject {
         world.decayInfectionFields();
         currentEpoch++;
 
-        // Okresowe starzenie się populacji (zależne od konfiguracji)
+        // 8. Okresowe starzenie się populacji
         if (currentEpoch % Config.getInt("simulation.ageRate", 12) == 0){
             for (Agent a : world.getAgents()) {
                 a.incrementAge();

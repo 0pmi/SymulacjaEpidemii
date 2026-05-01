@@ -43,11 +43,10 @@ public class InfectionManager {
                 world.addOrRefreshInfectionField(agent.getPosition(), fieldStrength);
             }
 
-            // WEKTOR 2: Zarażenie drogą powietrzną (bez kontaktu z chorym)
+            // WEKTOR 2: Zarażenie drogą powietrzną
             if (agent.canBeInfected()) {
                 InfectionField field = world.getFieldAt(agent.getPosition());
                 if (field != null) {
-                    // Szansa na zakażenie zależy od gęstości chmury i podatności agenta (np. czy nosi maskę)
                     double prob = field.getInfectivity() * agent.getVulnerabilityMultiplier();
                     if (ThreadLocalRandom.current().nextDouble() < prob) {
                         infect(agent);

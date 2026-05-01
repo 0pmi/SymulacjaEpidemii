@@ -62,7 +62,7 @@ public class SimulationChartGenerator {
                 .build();
 
         // Konfiguracja estetyki wykresu
-        populationChart.getStyler().setMarkerSize(0); // Usunięcie markerów dla lepszej czytelności przy dużej liczbie epok
+        populationChart.getStyler().setMarkerSize(0);
         populationChart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
 
         populationChart.addSeries("Zdrowi", epochs, healthy);
@@ -70,7 +70,7 @@ public class SimulationChartGenerator {
         populationChart.addSeries("Ozdrowieńcy", epochs, recovered);
 
         // 3. Generowanie Wykresu 2 - Analiza Śmiertelności
-        // Wizualizuje narastające (kumulatywne) statystyki zgonów z rozbiciem na przyczyny
+        // Wizualizuje kumulatywne statystyki zgonów z rozbiciem na przyczyny
         XYChart deathChart = new XYChartBuilder()
                 .width(800)
                 .height(600)

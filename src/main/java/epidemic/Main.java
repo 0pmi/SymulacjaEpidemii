@@ -72,9 +72,8 @@ public class Main {
                         seekHospital, distancing, normalMove, seekMate));
             } else if (rand < rationalRatio + panickedRatio) {
                 personality = new Personality(new PanickedDecisionStrategy(
-                        distancing, normalMove, seekHospital, seekMate)); // DODANY CZWARTY ARGUMENT
+                        distancing, normalMove, seekHospital, seekMate));
             } else {
-                // NOWE: W przeciwnym razie agent rodzi się z potencjałem bycia Mściwym!
                 personality = new Personality(new VindictiveDecisionStrategy(
                         maliciousPursuit, seekHospital, normalMove));
             }
