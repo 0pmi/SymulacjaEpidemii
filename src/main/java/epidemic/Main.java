@@ -7,6 +7,7 @@ import epidemic.model.*;
 import epidemic.service.Config;
 import epidemic.strategies.decision.PanickedDecisionStrategy;
 import epidemic.strategies.decision.RationalDecisionStrategy;
+import epidemic.strategies.decision.VindictiveDecisionStrategy;
 import epidemic.strategies.mortality.SigmoidMortalityStrategy;
 import epidemic.strategies.movement.*;
 
@@ -42,6 +43,8 @@ public class Main {
         MovementStrategy seekHospital = new SeekHospitalStrategy();
         MovementStrategy distancing = new SocialDistancingStrategy();
         MovementStrategy normalMove = new RandomWalkStrategy();
+        MovementStrategy seekMate = new SeekMateStrategy();
+        MovementStrategy maliciousPursuit = new MaliciousPursuitStrategy();
 
         // 4. Dynamiczne dodawanie Szpitali
         int hospitalCount = Config.getInt("hospital.count", 0);
@@ -54,17 +57,26 @@ public class Main {
 
         // 5. Zaludnianie: Ludzie
         int humanCount = Config.getInt("pop.humans", 450);
-        double rationalRatio = Config.getDouble("human.rationalRatio", 0.5);
+        double rationalRatio = Config.getDouble("human.rationalRatio", 0.4);
+        double panickedRatio = Config.getDouble("human.panickedRatio", 0.4);
 
         for (int i = 0; i < humanCount; i++) {
             Point2D pos = new Point2D(random.nextInt(width), random.nextInt(height));
             Personality personality;
 
-            // Losowanie osobowości na podstawie proporcji (ratio)
-            if (random.nextDouble() < rationalRatio) {
-                personality = new Personality(new RationalDecisionStrategy(seekHospital, distancing, normalMove));
+            double rand = random.nextDouble();
+
+            // Losowanie osobowości na podstawie proporcji
+            if (rand < rationalRatio) {
+                personality = new Personality(new RationalDecisionStrategy(
+                        seekHospital, distancing, normalMove, seekMate));
+            } else if (rand < rationalRatio + panickedRatio) {
+                personality = new Personality(new PanickedDecisionStrategy(
+                        distancing, normalMove, seekHospital, seekMate)); // DODANY CZWARTY ARGUMENT
             } else {
-                personality = new Personality(new PanickedDecisionStrategy(distancing, normalMove, seekHospital));
+                // NOWE: W przeciwnym razie agent rodzi się z potencjałem bycia Mściwym!
+                personality = new Personality(new VindictiveDecisionStrategy(
+                        maliciousPursuit, seekHospital, normalMove));
             }
 
             int age = Config.getInt("human.minAge", 20) + random.nextInt(Config.getInt("human.maxAgeRange", 40));

@@ -16,6 +16,7 @@ public class Human extends Agent implements HospitalUser {
     private boolean isWearingMask;
     private boolean wantsHospital;
     private boolean isInHospital;
+    private boolean isHostile;
 
     public Human(Point2D position, int age, double baseSpeed,
                  double resistance, Personality personality,
@@ -27,6 +28,7 @@ public class Human extends Agent implements HospitalUser {
         this.isWearingMask = false;
         this.wantsHospital = false;
         this.isInHospital = false;
+        this.isHostile = false;
     }
 
     @Override
@@ -39,7 +41,9 @@ public class Human extends Agent implements HospitalUser {
         sb.append("Maska: ").append(isWearingMask() ? "Tak" : "Nie").append("\n");
         sb.append("Szczepiony: ").append(isVaccinated() ? "Tak" : "Nie").append("\n");
         sb.append("Podatność: ").append(String.format("%.2f", getVulnerabilityMultiplier())).append("\n");
-
+        if (isHostile()) {
+            sb.append("Status: WŚCIEKŁY (Szuka ofiar!)\n");
+        }
         if (isInHospital()) {
             sb.append("Status: PACJENT SZPITALA\n");
         }
@@ -68,6 +72,8 @@ public class Human extends Agent implements HospitalUser {
     public void setWearingMask(boolean wearingMask) { this.isWearingMask = wearingMask; }
 
     public void setWantsHospital(boolean wantsHospital) { this.wantsHospital = wantsHospital; }
+    public boolean isHostile() { return isHostile; }
+    public void setHostile(boolean hostile) { this.isHostile = hostile; }
 
     @Override
     public boolean isWantsHospital() { return this.wantsHospital; }

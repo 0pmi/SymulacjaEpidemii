@@ -103,11 +103,26 @@ public class MapPanel extends JPanel {
                 Point2D pos = agent.getPosition();
                 int size = (agent instanceof Human) ? 6 : 4;
 
-                g2.fillOval(pos.x() * scale - size/2, pos.y() * scale - size/2, size, size);
+                int drawX = pos.x() * scale - size/2;
+                int drawY = pos.y() * scale - size/2;
 
-                // Oznaczenie zaznaczonego agenta
+                g2.fillOval(drawX, drawY, size, size);
+
+                // Rysowanie czarnej obwódki dla "wściekłych" agentów
+                if (agent instanceof Human human && human.isHostile()) {
+                    Stroke oldStroke = g2.getStroke(); // Zachowaj poprzednią grubość pędzla
+
+                    g2.setColor(Color.BLACK);
+                    g2.setStroke(new java.awt.BasicStroke(2)); // Pogrubiona krawędź
+                    g2.drawOval(drawX, drawY, size, size); // Rysuj dokładnie na granicach `fillOval`
+
+                    g2.setStroke(oldStroke); // Przywróć poprzedni pędzel
+                }
+
+                // Oznaczenie zaznaczonego agenta (Inspektor)
                 if (currentlyInspected == agent) {
                     g2.setColor(Color.BLACK);
+                    // Rysujemy większy okrąg otaczający agenta
                     g2.drawOval(pos.x() * scale - size, pos.y() * scale - size, size * 2, size * 2);
                 }
             }
@@ -235,6 +250,13 @@ public class MapPanel extends JPanel {
             healthLabel.setForeground(getColorForStatus(agent.getHealthStatus()));
             healthLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
             add(healthLabel);
+
+            if (agent instanceof Human human && human.isHostile()) {
+                JLabel hostileLabel = new JLabel("Status: WŚCIEKŁY!");
+                hostileLabel.setForeground(Color.BLACK); // Lub ciemno-czerwony
+                hostileLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+                add(hostileLabel);
+            }
 
             // Jeśli Agent jest chory lub jest nosicielem, pokazuje pasek przebiegu infekcji
             if (agent.getHealthStatus() == HealthStatus.SICK || agent.getHealthStatus() == HealthStatus.CARRIER) {

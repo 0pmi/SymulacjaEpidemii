@@ -1,10 +1,7 @@
 package epidemic.managers;
 
 import epidemic.factory.AgentFactory;
-import epidemic.model.Agent;
-import epidemic.model.HealthStatus;
-import epidemic.model.SpeciesType;
-import epidemic.model.WorldMap;
+import epidemic.model.*;
 import epidemic.service.Config;
 import epidemic.service.SpatialManager;
 import org.junit.jupiter.api.AfterEach;
@@ -28,15 +25,17 @@ class ReproductionManagerTest {
     @BeforeEach
     void setUp() {
         mockedConfig = Mockito.mockStatic(Config.class);
-        // Wymusza 100% szans na rozmnażanie i zasięg
-        mockedConfig.when(() -> Config.getDouble("reproduction.chance", 0.1)).thenReturn(1.0);
-        mockedConfig.when(() -> Config.getInt("reproduction.cooldown", 40)).thenReturn(10);
-        mockedConfig.when(() -> Config.getDouble("reproduction.matingRange", 0.1)).thenReturn(5.0);
+        mockedConfig.when(() -> Config.getDouble("reproduction.chance", 0.1)).thenReturn(1.0); // 100% chance for tests
+        mockedConfig.when(() -> Config.getDouble("reproduction.matingRange", 0.1)).thenReturn(0.1);
+
+        mockedConfig.when(() -> Config.getInt("reproduction.cooldownMin", 30)).thenReturn(30);
+        mockedConfig.when(() -> Config.getInt("reproduction.cooldownMax", 50)).thenReturn(50);
 
         mockFactory = mock(AgentFactory.class);
-        manager = new ReproductionManager(mockFactory);
         mockWorld = mock(WorldMap.class);
         mockSpatialManager = mock(SpatialManager.class);
+
+        manager = new ReproductionManager(mockFactory);
     }
 
     @AfterEach
@@ -46,51 +45,54 @@ class ReproductionManagerTest {
 
     @Test
     void shouldProduceOffspringIfConditionsAreMet() {
-        int currentEpoch = 50;
+        int currentEpoch = 100;
 
         Agent parentA = mock(Agent.class);
         when(parentA.isDead()).thenReturn(false);
         when(parentA.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
-        when(parentA.getLastReproductionEpoch()).thenReturn(0); // Cooldown minął
+        when(parentA.getLastReproductionEpoch()).thenReturn(10); // Dawno temu
         when(parentA.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
-        when(parentA.getAge()).thenReturn(25); // Pełnoletni
+        when(parentA.getAge()).thenReturn(25);
 
         Agent parentB = mock(Agent.class);
         when(parentB.isDead()).thenReturn(false);
         when(parentB.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
-        when(parentB.getLastReproductionEpoch()).thenReturn(0);
+        when(parentB.getLastReproductionEpoch()).thenReturn(10); // Dawno temu
         when(parentB.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
-        when(parentB.getAge()).thenReturn(24);
+        when(parentB.getAge()).thenReturn(25);
 
         Agent baby = mock(Agent.class);
 
         when(mockWorld.getAgents()).thenReturn(List.of(parentA, parentB));
-        when(mockSpatialManager.getNearbyAgents(parentA, 5.0)).thenReturn(List.of(parentB));
+        when(mockSpatialManager.getNearbyAgents(parentA, 0.1)).thenReturn(List.of(parentB));
         when(mockFactory.createOffspring(parentA, parentB)).thenReturn(baby);
 
         manager.handleReproduction(mockWorld, mockSpatialManager, currentEpoch);
 
-        // Weryfikacja efektów udanego rozrodu
+        // Verify that baby was created and added
         verify(mockFactory).createOffspring(parentA, parentB);
         verify(mockWorld).addAgent(baby);
+        // Verify cooldown was applied
         verify(parentA).setLastReproductionEpoch(currentEpoch);
         verify(parentB).setLastReproductionEpoch(currentEpoch);
     }
 
     @Test
     void shouldNotReproduceIfInCooldown() {
-        int currentEpoch = 50;
+        int currentEpoch = 100;
 
         Agent parentA = mock(Agent.class);
         when(parentA.isDead()).thenReturn(false);
         when(parentA.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
-        when(parentA.getLastReproductionEpoch()).thenReturn(45); // Ostatni rozród 5 epok temu (cooldown to 10)
+        //Modyfikuje tak, by epoch difference (100 - 90 = 10) było na pewno mniejsze niż cooldownMin (30)
+        when(parentA.getLastReproductionEpoch()).thenReturn(90);
         when(parentA.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
 
         when(mockWorld.getAgents()).thenReturn(List.of(parentA));
 
         manager.handleReproduction(mockWorld, mockSpatialManager, currentEpoch);
 
+        // Upewniam się, że nie sprawdzano nawet otoczenia ani nie powołano nowego życia
         verify(mockSpatialManager, never()).getNearbyAgents(any(), anyDouble());
         verify(mockFactory, never()).createOffspring(any(), any());
     }
