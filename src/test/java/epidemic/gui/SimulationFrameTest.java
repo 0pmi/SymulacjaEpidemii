@@ -49,6 +49,6 @@ class SimulationFrameTest {
 
         assertNotNull(frame);
         assertEquals("Sterowanie Symulacją Epidemii", frame.getTitle());
-        assertEquals(WindowConstants.DO_NOTHING_ON_CLOSE, frame.getDefaultCloseOperation());
+        assertEquals(WindowConstants.DISPOSE_ON_CLOSE, frame.getDefaultCloseOperation());
     }
 }
