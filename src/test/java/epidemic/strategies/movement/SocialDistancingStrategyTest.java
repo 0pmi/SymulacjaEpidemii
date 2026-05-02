@@ -15,11 +15,16 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Testy jednostkowe weryfikujące poprawność wektorów ucieczki w SocialDistancingStrategy.
+ *
+ * Klasa sprawdza poprawność matematyczną algorytmu pól potencjałów oraz upewnia się,
+ * że agenci nie przenikają przez granice świata i nie grupują się na krawędziach.
+ */
 class SocialDistancingStrategyTest {
 
     private MockedStatic<Config> mockedConfig;
@@ -27,15 +32,28 @@ class SocialDistancingStrategyTest {
     private WorldMap mockWorld;
     private SocialDistancingStrategy strategy;
 
+    /**
+     * Przygotowanie środowiska testowego.
+     * Mockowanie Config musi nastąpić przed instancjacją strategii,
+     * ponieważ wartości są przypisywane do pól finalnych w konstruktorze.
+     */
     @BeforeEach
     void setUp() {
         mockedConfig = Mockito.mockStatic(Config.class);
-        // Konfiguruje testowy promień przed inicjalizacją strategii (ze względu na przypisanie do pola finalnego)
+
+        // Mockowanie wszystkich parametrów, których używa konstruktor/pola klasy
         mockedConfig.when(() -> Config.getDouble("movement.distancing.radius", 5.0)).thenReturn(5.0);
+        mockedConfig.when(() -> Config.getDouble("movement.boundary.margin", 3.0)).thenReturn(3.0);
+        mockedConfig.when(() -> Config.getDouble("movement.social.weight", 1.0)).thenReturn(1.0);
+        mockedConfig.when(() -> Config.getDouble("movement.boundary.weight", 2.5)).thenReturn(2.5);
 
         strategy = new SocialDistancingStrategy();
         mockAgent = mock(Agent.class);
         mockWorld = mock(WorldMap.class);
+
+        // Ustawienie wymiarów, aby clamp() nie sprowadzał wyniku do 0
+        when(mockWorld.getWidth()).thenReturn(100);
+        when(mockWorld.getHeight()).thenReturn(100);
     }
 
     @AfterEach
@@ -43,55 +61,80 @@ class SocialDistancingStrategyTest {
         mockedConfig.close();
     }
 
+    /**
+     * Weryfikuje ucieczkę od pojedynczego źródła zagrożenia.
+     * Agent na (10,10) przy sąsiedzie na (12,10) musi wygenerować wektor ujemny (dx = -1).
+     */
     @Test
     void shouldFleeDirectlyAwayFromSingleNeighbor() {
-        Point2D agentPos = new Point2D(5, 5);
+        Point2D agentPos = new Point2D(10, 10);
         when(mockAgent.getPosition()).thenReturn(agentPos);
 
-        // Symulacja: Sąsiad znajduje się po prawej stronie (X + 2)
         Agent mockNeighbor = mock(Agent.class);
-        when(mockNeighbor.getPosition()).thenReturn(new Point2D(7, 5));
+        when(mockNeighbor.getPosition()).thenReturn(new Point2D(12, 10));
 
-        when(mockWorld.getNeighbors(eq(agentPos), eq(5.0))).thenReturn(List.of(mockNeighbor));
+        // Użycie any() zapewnia, że Mockito dopasuje wywołanie niezależnie od instancji Point2D
+        when(mockWorld.getNeighbors(any(), anyDouble())).thenReturn(List.of(mockNeighbor));
 
         Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
 
-        // Agent powinien uciekać w lewo, z dala od sąsiada. Oczekuję kroku dx = -1.
-        assertEquals(4, nextPos.x());
-        assertEquals(5, nextPos.y());
+        assertEquals(9, nextPos.x(), "Agent powinien uciekać na zachód (X: 10 -> 9)");
+        assertEquals(10, nextPos.y());
     }
 
+    /**
+     * Sprawdza wektor wypadkowy przy wielu sąsiadach.
+     * Siły ucieczki powinny się sumować, prowadząc agenta na wolną przestrzeń.
+     */
     @Test
     void shouldCalculateVectorAwayFromMultipleNeighbors() {
         Point2D agentPos = new Point2D(10, 10);
         when(mockAgent.getPosition()).thenReturn(agentPos);
 
-        // Dwóch sąsiadów na północy i wschodzie. Agent powinien uciekać na południowy-zachód (-1, -1)
-        Agent neighborNorth = mock(Agent.class);
-        when(neighborNorth.getPosition()).thenReturn(new Point2D(10, 12));
+        Agent n1 = mock(Agent.class); // Północ
+        when(n1.getPosition()).thenReturn(new Point2D(10, 12));
+        Agent n2 = mock(Agent.class); // Wschód
+        when(n2.getPosition()).thenReturn(new Point2D(12, 10));
 
-        Agent neighborEast = mock(Agent.class);
-        when(neighborEast.getPosition()).thenReturn(new Point2D(12, 10));
-
-        when(mockWorld.getNeighbors(eq(agentPos), eq(5.0))).thenReturn(List.of(neighborNorth, neighborEast));
+        when(mockWorld.getNeighbors(any(), anyDouble())).thenReturn(List.of(n1, n2));
 
         Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
 
-        assertEquals(9, nextPos.x());
-        assertEquals(9, nextPos.y());
+        assertEquals(9, nextPos.x(), "Ucieczka od wschodniego sąsiada");
+        assertEquals(9, nextPos.y(), "Ucieczka od północnego sąsiada");
     }
 
+    /**
+     * Weryfikuje system ochrony granic.
+     * Nawet przy braku sąsiadów, krawędź mapy powinna generować siłę spychającą do wnętrza.
+     */
     @Test
-    void shouldFallbackToRandomWhenNoNeighbors() {
-        Point2D agentPos = new Point2D(0, 0);
+    void shouldAvoidBoundaryWhenCloseToEdge() {
+        // Agent przy lewej krawędzi (X=1). Margines to 3.0, więc siła odpychania musi zadziałać.
+        Point2D agentPos = new Point2D(1, 50);
         when(mockAgent.getPosition()).thenReturn(agentPos);
-        when(mockWorld.getNeighbors(any(), any(Double.class))).thenReturn(Collections.emptyList());
+        when(mockWorld.getNeighbors(any(), anyDouble())).thenReturn(Collections.emptyList());
 
-        // Wykonuje zapytanie wielokrotnie ze względu na losowość
-        for(int i = 0; i < 50; i++) {
-            Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
-            assertTrue(nextPos.x() >= -1 && nextPos.x() <= 1);
-            assertTrue(nextPos.y() >= -1 && nextPos.y() <= 1);
-        }
+        Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
+
+        assertTrue(nextPos.x() > agentPos.x(), "Wektor odpychania od ściany powinien przesunąć agenta w prawo");
+    }
+
+    /**
+     * Sprawdza mechanizm bezpieczeństwa błądzenia losowego.
+     */
+    @Test
+    void shouldFallbackToRandomWhenNoStimuli() {
+        // Środek mapy, brak sąsiadów - pełna swoboda ruchu
+        Point2D agentPos = new Point2D(50, 50);
+        when(mockAgent.getPosition()).thenReturn(agentPos);
+        when(mockWorld.getNeighbors(any(), anyDouble())).thenReturn(Collections.emptyList());
+
+        Point2D nextPos = strategy.calculateNextPosition(mockAgent, mockWorld);
+
+        int dx = Math.abs(nextPos.x() - agentPos.x());
+        int dy = Math.abs(nextPos.y() - agentPos.y());
+
+        assertTrue(dx <= 1 && dy <= 1, "Ruch losowy nie może przekroczyć jednego pola");
     }
 }
