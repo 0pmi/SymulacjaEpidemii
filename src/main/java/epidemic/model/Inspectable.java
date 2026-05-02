@@ -1,14 +1,19 @@
 package epidemic.model;
 
+import java.util.List;
+
 /**
- * Interfejs oznaczający obiekty, które potrafią zwrócić czytelne dla człowieka
- * podsumowanie swojego stanu. Wykorzystywany głównie przez system GUI (Inspektor Obiektów)
- * przy kliknięciu w dany element na mapie.
+ * Interfejs oznaczający obiekty, z których GUI potrafi wyciągnąć
+ * dynamiczną listę cech i ich stanu w czasie rzeczywistym.
  */
 public interface Inspectable {
+    /**
+     * Zwraca główny nagłówek/tytuł inspekcji.
+     */
+    String getObjectName();
 
     /**
-     * @return Sformatowany, wielolinijkowy ciąg znaków zawierający statystyki i stan obiektu.
+     * Zwraca listę właściwości, które Panel Inspektora ma wygenerować.
      */
-    String getDetailedInfo();
+    List<InspectionProperty> getInspectionProperties();
 }

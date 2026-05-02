@@ -2,6 +2,12 @@ package epidemic.model;
 
 import epidemic.service.Config;
 import epidemic.strategies.movement.MovementStrategy;
+
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Abstrakcyjna klasa bazowa reprezentująca każdą encję zdolną do poruszania się
  * i uczestniczenia w procesie epidemicznym na mapie symulacji.
@@ -39,14 +45,60 @@ public abstract class Agent implements Inspectable {
         this.movementStrategy = movementStrategy;
     }
     @Override
-    public String getDetailedInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== Inspektor Agenta ===\n");
-        sb.append("ID: ").append(Integer.toHexString(this.hashCode())).append("\n");
-        sb.append("Typ: ").append(getSpeciesType()).append("\n");
-        sb.append("Wiek: ").append(getAge()).append("\n");
-        sb.append("Stan zdrowia: ").append(getHealthStatus()).append("\n");
-        return sb.toString();
+    public String getObjectName() {
+        return "Typ: " + getSpeciesType().name();
+    }
+
+    @Override
+    public List<InspectionProperty> getInspectionProperties() {
+        List<InspectionProperty> props = new ArrayList<>();
+
+        // 1. Pozycja
+        props.add(InspectionProperty.text("Pozycja", "[" + getPosition().x() + ", " + getPosition().y() + "]"));
+
+        // 2. Wiek - konfiguracja maksymalnego wieku z systemu
+        int maxAge = Config.getInt("mortality.maxAge", 100);
+        // Przekazujemy aktualny wiek do etykiety, aby tekst nad paskiem był precyzyjny
+        props.add(InspectionProperty.progressBar("Wiek (" + getAge() + ")", getAge(), maxAge, new Color(46, 139, 87)));
+
+        // 3. Jeśli agent nie żyje, natychmiast przerywamy budowanie dalszych statystyk
+        if (isDead()) {
+            props.add(InspectionProperty.textColored("STAN", "MARTWY", Color.BLACK));
+            return props;
+        }
+
+        // 4. Stan zdrowia (z odpowiednim formatowaniem kolorystycznym)
+        Color healthColor = getColorForStatus(getHealthStatus());
+        props.add(InspectionProperty.textColored("Stan Zdrowia", getHealthStatus().toString(), healthColor));
+
+        // 5. Przebieg infekcji (Pasek pokazujący się tylko dla chorych i nosicieli)
+        if (getHealthStatus() == HealthStatus.SICK || getHealthStatus() == HealthStatus.CARRIER) {
+            int defaultDuration = Config.getInt("virus.defaultDuration", 30);
+            props.add(InspectionProperty.progressBar(
+                    "Do końca infekcji (" + getRemainingInfectionEpochs() + " / " + defaultDuration + ")",
+                    getRemainingInfectionEpochs(),
+                    defaultDuration,
+                    Color.RED
+            ));
+        }
+
+        // 6. Wskaźniki biomechaniczne
+        props.add(InspectionProperty.text("Podatność", String.format("%.2f", getVulnerabilityMultiplier())));
+        props.add(InspectionProperty.text("Strategia Ruchu", getMovementStrategy().getClass().getSimpleName()));
+
+        return props;
+    }
+
+    /**
+     * Tłumaczy status medyczny na kolor.
+     */
+    protected Color getColorForStatus(HealthStatus status) {
+        return switch (status) {
+            case HEALTHY -> new Color(34, 139, 34);
+            case SICK -> Color.RED;
+            case CARRIER -> Color.ORANGE;
+            case RECOVERED -> new Color(0, 191, 255);
+        };
     }
     /**
      * Zwiększa wiek agenta o jedną jednostkę.

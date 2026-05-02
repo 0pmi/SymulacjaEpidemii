@@ -1,5 +1,6 @@
 package epidemic.model;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,20 +33,22 @@ public class Hospital implements Inspectable {
         return patients;
     }
     @Override
-    public String getDetailedInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== Inspektor Szpitala ===\n");
-        sb.append("Pozycja: ").append(position).append("\n");
-        sb.append("Obłożenie: ").append(getPatients().size()).append(" / ").append(capacity).append("\n");
-        if (!getPatients().isEmpty()) {
-            sb.append("\nLista pacjentów (ID):\n");
-            for (HospitalUser user : getPatients()) {
-                sb.append("- ").append(Integer.toHexString(user.hashCode())).append("\n");
-            }
-        } else {
-            sb.append("\nSzpital jest pusty.\n");
-        }
-        return sb.toString();
+    public String getObjectName() {
+        return "Szpital Polowy";
+    }
+
+    @Override
+    public List<InspectionProperty> getInspectionProperties() {
+        List<InspectionProperty> props = new ArrayList<>();
+        props.add(InspectionProperty.text("Pozycja", "[" + position.x() + ", " + position.y() + "]"));
+
+        // Obliczenia kolorów paska postępu dla GUI przeniesione blisko domeny
+        double fillRatio = (double) patients.size() / capacity;
+        Color barColor = fillRatio > 0.9 ? Color.RED : (fillRatio > 0.5 ? Color.ORANGE : new Color(30, 144, 255));
+
+        props.add(InspectionProperty.progressBar("Obłożenie Łóżek", patients.size(), capacity, barColor));
+
+        return props;
     }
 
 }

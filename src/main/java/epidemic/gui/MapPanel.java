@@ -200,115 +200,46 @@ public class MapPanel extends JPanel {
         }
 
         public void refresh(Object obj) {
-            removeAll(); // Czyści panel przed narysowaniem nowych danych
+            removeAll();
 
             if (obj == null) {
                 JLabel emptyLabel = new JLabel("<html><i>Kliknij obiekt na mapie,<br>aby wyświetlić telemetrię.</i></html>");
                 emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
                 add(emptyLabel);
-            } else if (obj instanceof Agent agent) {
-                buildAgentUI(agent);
-            } else if (obj instanceof Hospital hospital) {
-                buildHospitalUI(hospital);
+            } else if (obj instanceof Inspectable inspectable) { // ← Jedno polimorficzne wywołanie
+
+                JLabel titleLabel = new JLabel(inspectable.getObjectName());
+                titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+                add(titleLabel);
+                add(Box.createVerticalStrut(15));
+
+                for (InspectionProperty prop : inspectable.getInspectionProperties()) {
+                    add(new JLabel(prop.label() + ":"));
+
+                    if (prop.progressMax() != null) {
+                        // Jeśli dostarczono dane dla paska postępu - stwórz ProgressBar
+                        JProgressBar bar = new JProgressBar(0, prop.progressMax());
+                        bar.setValue(prop.progressValue());
+                        bar.setStringPainted(true);
+                        if (prop.highlightColor() != null) {
+                            bar.setForeground(prop.highlightColor());
+                        }
+                        add(bar);
+                    } else {
+                        // Jeśli nie, dodaj wartość jako zwykły tekst (z ew. kolorem)
+                        JLabel valLabel = new JLabel(prop.stringValue());
+                        if (prop.highlightColor() != null) {
+                            valLabel.setForeground(prop.highlightColor());
+                            valLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+                        }
+                        add(valLabel);
+                    }
+                    add(Box.createVerticalStrut(10));
+                }
             }
 
-            revalidate(); // Zmusza Swinga do przeliczenia Layoutu
+            revalidate();
             repaint();
-        }
-
-        private void buildAgentUI(Agent agent) {
-            // Nagłówek
-            JLabel titleLabel = new JLabel("Typ: " + agent.getSpeciesType().name());
-            titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-            add(titleLabel);
-
-            JLabel posLabel = new JLabel("Pozycja: [" + agent.getPosition().x() + ", " + agent.getPosition().y() + "]");
-            add(posLabel);
-            add(Box.createVerticalStrut(15)); // Odstęp
-
-            // Wiek i Stan Życia
-            add(new JLabel("Wiek: " + agent.getAge()));
-            JProgressBar ageBar = new JProgressBar(0, Config.getInt("mortality.maxAge", 100));
-            ageBar.setValue(agent.getAge());
-            ageBar.setStringPainted(true);
-            ageBar.setForeground(new Color(46, 139, 87));
-            add(ageBar);
-
-            if (agent.isDead()) {
-                JLabel deadLabel = new JLabel("STAN: MARTWY");
-                deadLabel.setForeground(Color.BLACK);
-                deadLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-                add(deadLabel);
-                return; // Jeśli agent nie żyje, nie ma sensu wyświetlać reszty
-            }
-
-            add(Box.createVerticalStrut(15));
-
-            // Status Zdrowotny
-            JLabel healthLabel = new JLabel("Stan Zdrowia: " + agent.getHealthStatus());
-            healthLabel.setForeground(getColorForStatus(agent.getHealthStatus()));
-            healthLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-            add(healthLabel);
-
-            if (agent instanceof Human human && human.isHostile()) {
-                JLabel hostileLabel = new JLabel("Status: WŚCIEKŁY!");
-                hostileLabel.setForeground(Color.BLACK);
-                hostileLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-                add(hostileLabel);
-            }
-
-            // Jeśli Agent jest chory lub jest nosicielem, pokazuje pasek przebiegu infekcji
-            if (agent.getHealthStatus() == HealthStatus.SICK || agent.getHealthStatus() == HealthStatus.CARRIER) {
-                add(new JLabel("Do końca infekcji (epoki):"));
-                int defaultDuration = Config.getInt("virus.defaultDuration", 30);
-                JProgressBar infectionBar = new JProgressBar(0, defaultDuration);
-                infectionBar.setValue(agent.getRemainingInfectionEpochs());
-                infectionBar.setString(agent.getRemainingInfectionEpochs() + " / " + defaultDuration);
-                infectionBar.setStringPainted(true);
-                infectionBar.setForeground(Color.RED);
-                add(infectionBar);
-            }
-
-            add(Box.createVerticalStrut(15));
-
-            // Informacje Medyczne (Tylko dla obiektów mogących korzystać ze szpitali)
-            if (agent instanceof HospitalUser user) {
-                add(new JLabel("<html><b>Dane Medyczne:</b></html>"));
-                add(new JLabel("Szczepienie: " + (user.isVaccinated() ? "Tak" : "Nie")));
-                add(new JLabel("W szpitalu: " + (user.isInHospital() ? "Tak" : "Nie")));
-                add(new JLabel("Chce do szpitala: " + (user.isWantsHospital() ? "Tak" : "Nie")));
-            }
-
-            add(Box.createVerticalStrut(10));
-            add(new JLabel("Podatność: " + String.format("%.2f", agent.getVulnerabilityMultiplier())));
-
-            add(Box.createVerticalStrut(15));
-            add(new JLabel("<html><b>Strategia Ruchu:</b></html>"));
-            add(new JLabel(agent.getMovementStrategy().getClass().getSimpleName()));
-        }
-
-        private void buildHospitalUI(Hospital hospital) {
-            JLabel titleLabel = new JLabel("Szpital Polowy");
-            titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-            add(titleLabel);
-
-            JLabel posLabel = new JLabel("Pozycja: [" + hospital.getPosition().x() + ", " + hospital.getPosition().y() + "]");
-            add(posLabel);
-            add(Box.createVerticalStrut(15));
-
-            add(new JLabel("Obłożenie Łóżek:"));
-            JProgressBar capacityBar = new JProgressBar(0, hospital.getCapacity());
-            capacityBar.setValue(hospital.getPatients().size());
-            capacityBar.setString(hospital.getPatients().size() + " / " + hospital.getCapacity());
-            capacityBar.setStringPainted(true);
-
-            // Kolor zależny od zatłoczenia
-            double fillRatio = (double) hospital.getPatients().size() / hospital.getCapacity();
-            if (fillRatio > 0.9) capacityBar.setForeground(Color.RED);
-            else if (fillRatio > 0.5) capacityBar.setForeground(Color.ORANGE);
-            else capacityBar.setForeground(new Color(30, 144, 255));
-
-            add(capacityBar);
         }
     }
 }
