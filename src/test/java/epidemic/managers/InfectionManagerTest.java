@@ -95,4 +95,46 @@ class InfectionManagerTest {
         verify(healthyAgent).setHealthStatus(HealthStatus.SICK);
         verify(healthyAgent).setRemainingInfectionEpochs(30);
     }
+    /**
+     * Weryfikuje czy martwi agenci są ignorowani jako wektor zakażeń.
+     */
+    @Test
+    void shouldNotSpreadVirusIfSpreaderIsDead() {
+        Agent deadAgent = mock(Agent.class);
+        when(deadAgent.isDead()).thenReturn(true);
+        when(deadAgent.getHealthStatus()).thenReturn(HealthStatus.SICK); // Był chory przed śmiercią
+
+        when(mockWorld.getAgents()).thenReturn(List.of(deadAgent));
+
+        manager.processInfections(mockWorld);
+
+        // Upewniamy się, że trup nie skaził środowiska i nie wyszukiwał sąsiadów
+        verify(mockWorld, never()).addOrRefreshInfectionField(any(), anyDouble());
+        verify(mockSpatialManager, never()).getNearbyAgents(any(), anyDouble());
+    }
+
+    /**
+     * Weryfikuje bezobjawowego nosiciela (CARRIER), upewniając się, że
+     * jego wpływ na środowisko jest poprawnie osłabiany przez mnożniki.
+     */
+    @Test
+    void shouldSpreadWeakerVirusIfSpreaderIsCarrier() {
+        // Odtwarzamy domyślną konfigurację tylko na potrzeby tego testu
+        mockedConfig.when(() -> Config.getDouble("infectionField.aerosolMultiplier", 0.3)).thenReturn(0.3);
+        mockedConfig.when(() -> Config.getDouble("infection.carrierMultiplier", 0.5)).thenReturn(0.5);
+
+        Agent carrier = mock(Agent.class);
+        when(carrier.isDead()).thenReturn(false);
+        when(carrier.getHealthStatus()).thenReturn(HealthStatus.CARRIER);
+        Point2D carrierPos = new Point2D(10, 10);
+        when(carrier.getPosition()).thenReturn(carrierPos);
+
+        when(mockWorld.getAgents()).thenReturn(List.of(carrier));
+
+        manager.processInfections(mockWorld);
+
+        // Obliczenie siły z jaką nosiciel zanieczyszcza środowisko:
+        // Prawdopodobieństwo wirusa (1.0) * Mnożnik Aerozolu (0.3) * Mnożnik Nosiciela (0.5) = 0.15
+        verify(mockWorld).addOrRefreshInfectionField(eq(carrierPos), eq(0.15));
+    }
 }

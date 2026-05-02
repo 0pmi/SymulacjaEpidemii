@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.awt.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -19,7 +21,7 @@ class AgentTest {
     private SpeciesType mockSpeciesType;
     private TestAgent agent;
 
-    // Klasa pomocnicza (Dummy) do testowania klasy abstrakcyjnej
+    // Klasa pomocnicza do testowania klasy abstrakcyjnej
     private static class TestAgent extends Agent {
         public TestAgent(Point2D position, int age, SpeciesType speciesType, double baseSpeed, MovementStrategy movementStrategy) {
             super(position, age, speciesType, baseSpeed, movementStrategy);
@@ -95,5 +97,46 @@ class AgentTest {
     @Test
     void shouldReturnCorrectVirulenceFromSpeciesType() {
         assertEquals(0.5, agent.getVirulence(), "Metoda getVirulence powinna delegować wywołanie do przypisanego SpeciesType");
+    }
+
+    /**
+     * Weryfikuje poprawne mapowanie koloru i właściwości dla agenta z pełnoobjawową chorobą.
+     */
+    @Test
+    void shouldReturnCorrectPropertiesAndRedColorWhenSick() {
+        agent.setHealthStatus(HealthStatus.SICK);
+        agent.setRemainingInfectionEpochs(15);
+
+        var props = agent.getInspectionProperties();
+
+        // Sprawdzamy czy metoda getColorForStatus zadziałała prawidłowo dla SICK (Czerwony)
+        boolean hasCorrectHealthColor = props.stream()
+                .anyMatch(p -> "Stan Zdrowia".equals(p.label()) && Color.RED.equals(p.highlightColor()));
+        assertTrue(hasCorrectHealthColor, "Chory agent powinien być oznaczony na czerwono");
+
+        // Sprawdzamy czy wygenerował się pasek postępu infekcji
+        boolean hasInfectionBar = props.stream()
+                .anyMatch(p -> p.label().startsWith("Do końca infekcji") && p.progressValue() != null);
+        assertTrue(hasInfectionBar, "Chory agent powinien posiadać pasek postępu infekcji");
+    }
+
+    /**
+     * Weryfikuje mapowanie kolorów dla nosicieli oraz ozdrowieńców.
+     */
+    @Test
+    void shouldReturnCorrectColorsForCarrierAndRecovered() {
+        // Test nosiciela
+        agent.setHealthStatus(HealthStatus.CARRIER);
+        var carrierProps = agent.getInspectionProperties();
+        boolean isOrange = carrierProps.stream()
+                .anyMatch(p -> "Stan Zdrowia".equals(p.label()) && Color.ORANGE.equals(p.highlightColor()));
+        assertTrue(isOrange, "Nosiciel powinien być oznaczony na pomarańczowo");
+
+        // Test ozdrowieńca
+        agent.setHealthStatus(HealthStatus.RECOVERED);
+        var recoveredProps = agent.getInspectionProperties();
+        boolean isBlue = recoveredProps.stream()
+                .anyMatch(p -> "Stan Zdrowia".equals(p.label()) && new Color(0, 191, 255).equals(p.highlightColor()));
+        assertTrue(isBlue, "Ozdrowieniec powinien być oznaczony na niebiesko");
     }
 }

@@ -98,4 +98,67 @@ class MedicalManagerTest {
         verify(mockPatient, never()).setIsInHospital(false);
         assertEquals(1, patients.size(), "Pacjent nie wyleczył się w pełni, zostaje w szpitalu");
     }
+    /**
+     * Weryfikuje zwalnianie pacjentów po pełnym powrocie do zdrowia.
+     */
+    @Test
+    void shouldDischargePatientIfFullyRecovered() {
+        Human mockPatient = mock(Human.class);
+        when(mockPatient.isWantsHospital()).thenReturn(true);
+        when(mockPatient.getHealthStatus()).thenReturn(HealthStatus.RECOVERED);
+
+        List<epidemic.model.HospitalUser> patients = new ArrayList<>();
+        patients.add(mockPatient);
+        when(mockHospital.getPatients()).thenReturn(patients);
+
+        manager.processMedicalCare(mockWorld, mockContext);
+
+        verify(mockPatient).setWantsHospital(false);
+        verify(mockPatient).setIsInHospital(false);
+        assertEquals(0, patients.size(), "Ozdrowieniec powinien zwolnić łóżko w szpitalu");
+    }
+
+    /**
+     * Weryfikuje wyrzucanie zdrowych osób, gdy brak szczepionek.
+     */
+    @Test
+    void shouldDischargeHealthyPatientIfNoVaccineAvailable() {
+        Human mockPatient = mock(Human.class);
+        when(mockPatient.isWantsHospital()).thenReturn(true);
+        when(mockPatient.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        when(mockContext.isVaccineAvailable()).thenReturn(false); // Brak szczepionek!
+
+        List<epidemic.model.HospitalUser> patients = new ArrayList<>();
+        patients.add(mockPatient);
+        when(mockHospital.getPatients()).thenReturn(patients);
+
+        manager.processMedicalCare(mockWorld, mockContext);
+
+        verify(mockPatient).setWantsHospital(false);
+        verify(mockPatient).setIsInHospital(false);
+        assertEquals(0, patients.size(), "Zdrowy pacjent bez dostępnej szczepionki powinien zostać wypisany");
+    }
+
+    /**
+     * Weryfikuje zwalnianie chorych, gdy proces medyczny (healingBoost) dobije ich licznik infekcji do zera.
+     */
+    @Test
+    void shouldDischargeSickPatientWhenHealedToZeroInfectionEpochs() {
+        Human mockPatient = mock(Human.class);
+        when(mockPatient.isWantsHospital()).thenReturn(true);
+        when(mockPatient.getHealthStatus()).thenReturn(HealthStatus.SICK);
+
+        when(mockPatient.getRemainingInfectionEpochs()).thenReturn(1, 0);
+
+        List<epidemic.model.HospitalUser> patients = new ArrayList<>();
+        patients.add(mockPatient);
+        when(mockHospital.getPatients()).thenReturn(patients);
+
+        manager.processMedicalCare(mockWorld, mockContext);
+
+        verify(mockPatient).setRemainingInfectionEpochs(0);
+        verify(mockPatient).setHealthStatus(HealthStatus.RECOVERED); // Ozdrowienie
+        verify(mockPatient).setIsInHospital(false);
+        assertEquals(0, patients.size(), "Pacjent, któremu licznik infekcji spadł do 0, zostaje wypisany jako ozdrowieniec");
+    }
 }

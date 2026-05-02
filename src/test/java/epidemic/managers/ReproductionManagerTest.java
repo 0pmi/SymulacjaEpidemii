@@ -25,11 +25,14 @@ class ReproductionManagerTest {
     @BeforeEach
     void setUp() {
         mockedConfig = Mockito.mockStatic(Config.class);
-        mockedConfig.when(() -> Config.getDouble("reproduction.chance", 0.1)).thenReturn(1.0); // 100% chance for tests
+        mockedConfig.when(() -> Config.getDouble("reproduction.chance", 0.1)).thenReturn(1.0);
         mockedConfig.when(() -> Config.getDouble("reproduction.matingRange", 0.1)).thenReturn(0.1);
 
         mockedConfig.when(() -> Config.getInt("reproduction.cooldownMin", 30)).thenReturn(30);
         mockedConfig.when(() -> Config.getInt("reproduction.cooldownMax", 50)).thenReturn(50);
+
+        mockedConfig.when(() -> Config.getInt("species.human.maturity", 18)).thenReturn(18);
+        SpeciesType.initAllFromConfig();
 
         mockFactory = mock(AgentFactory.class);
         mockWorld = mock(WorldMap.class);
@@ -94,6 +97,56 @@ class ReproductionManagerTest {
 
         // Upewniam się, że nie sprawdzano nawet otoczenia ani nie powołano nowego życia
         verify(mockSpatialManager, never()).getNearbyAgents(any(), anyDouble());
+        verify(mockFactory, never()).createOffspring(any(), any());
+    }
+    /**
+     * Weryfikuje czy agenci, którzy nie osiągnęli wieku dojrzałości, są odrzucani.
+     */
+    @Test
+    void shouldNotReproduceIfUnderage() {
+        int currentEpoch = 100;
+
+        Agent childA = mock(Agent.class);
+        when(childA.isDead()).thenReturn(false);
+        when(childA.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        when(childA.getLastReproductionEpoch()).thenReturn(0);
+        when(childA.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
+        when(childA.getAge()).thenReturn(5); // Dziecko
+
+        when(mockWorld.getAgents()).thenReturn(List.of(childA));
+
+        manager.handleReproduction(mockWorld, mockSpatialManager, currentEpoch);
+
+        verify(mockSpatialManager, never()).getNearbyAgents(any(), anyDouble());
+    }
+
+    /**
+     * Weryfikuje mechanizm zapobiegający krzyżowaniu międzygatunkowemu (np. pies z człowiekiem).
+     */
+    @Test
+    void shouldNotReproduceIfPartnersAreDifferentSpecies() {
+        int currentEpoch = 100;
+
+        Agent human = mock(Agent.class);
+        when(human.isDead()).thenReturn(false);
+        when(human.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        when(human.getLastReproductionEpoch()).thenReturn(0);
+        when(human.getSpeciesType()).thenReturn(SpeciesType.HUMAN);
+        when(human.getAge()).thenReturn(25);
+
+        Agent dog = mock(Agent.class);
+        when(dog.isDead()).thenReturn(false);
+        when(dog.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        when(dog.getLastReproductionEpoch()).thenReturn(0);
+        when(dog.getSpeciesType()).thenReturn(SpeciesType.DOG);
+        when(dog.getAge()).thenReturn(10); // Dorosły pies
+
+        when(mockWorld.getAgents()).thenReturn(List.of(human, dog));
+        when(mockSpatialManager.getNearbyAgents(human, 0.1)).thenReturn(List.of(dog)); // Pies jest obok człowieka
+
+        manager.handleReproduction(mockWorld, mockSpatialManager, currentEpoch);
+
+        // Fabryka nie powinna zostać zawołana na produkcję potomstwa
         verify(mockFactory, never()).createOffspring(any(), any());
     }
 }
