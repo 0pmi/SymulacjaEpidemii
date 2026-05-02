@@ -85,6 +85,13 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>epidemic/gui/**</exclude>
+                        <exclude>epidemic/charts/**</exclude>
+                        <exclude>epidemic/Main.class</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

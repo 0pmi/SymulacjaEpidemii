@@ -31,6 +31,9 @@ class RationalDecisionStrategyTest {
         mockedConfig.when(() -> Config.getInt("rational.hospitalEpochThreshold", 5)).thenReturn(5);
         mockedConfig.when(() -> Config.getDouble("reproduction.seekMateProbability", 0.2)).thenReturn(1.0); // 100% pewności dla celów testu!
 
+        mockedConfig.when(() -> Config.getInt("species.human.maturity", 18)).thenReturn(18);
+        SpeciesType.initAllFromConfig(); // Wymusza załadowanie wartości 18 do stałej HUMAN
+
         mockHospitalMovement = mock(MovementStrategy.class);
         mockDistancingMovement = mock(MovementStrategy.class);
         mockNormalMovement = mock(MovementStrategy.class);
@@ -113,5 +116,22 @@ class RationalDecisionStrategyTest {
 
         verify(mockHuman, never()).setMovementStrategy(mockDistancingMovement);
         verify(mockHuman, never()).setMovementStrategy(mockHospitalMovement);
+    }
+    /**
+     * Weryfikuje wymóg bycia dorosłym przy poszukiwaniu partnera.
+     */
+    @Test
+    void shouldNotSeekMateIfUnderageEvenIfHealthyAndLowInfection() {
+        // Arrange
+        WorldContext context = new WorldContext(0.10, false, 100, 10);
+        when(mockHuman.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        // Nadpisujemy przygotowanie z @BeforeEach i ustalamy wiek na bardzo młody
+        when(mockHuman.getAge()).thenReturn(5);
+
+        // Act
+        strategy.makeDecision(mockHuman, context);
+
+        // Assert
+        verify(mockHuman).setMovementStrategy(mockNormalMovement); // Powinien użyć normalnego ruchu, a nie prokreacyjnego
     }
 }

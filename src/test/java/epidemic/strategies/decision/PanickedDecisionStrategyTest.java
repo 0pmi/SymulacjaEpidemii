@@ -31,6 +31,8 @@ class PanickedDecisionStrategyTest {
         // Forsujemy poszukiwanie partnera dla testu w stanie spokoju
         mockedConfig.when(() -> Config.getDouble("reproduction.seekMateProbability", 0.2)).thenReturn(1.0);
 
+        mockedConfig.when(() -> Config.getInt("species.human.maturity", 18)).thenReturn(18);
+        SpeciesType.initAllFromConfig();
         mockPanicMovement = mock(MovementStrategy.class);
         mockCalmMovement = mock(MovementStrategy.class);
         mockHospitalMovement = mock(MovementStrategy.class);
@@ -100,5 +102,26 @@ class PanickedDecisionStrategyTest {
 
         verify(mockHuman, never()).setMovementStrategy(mockPanicMovement);
         verify(mockHuman, never()).setMovementStrategy(mockHospitalMovement);
+    }
+    /**
+     * Weryfikuje wymóg bycia dorosłym przy poszukiwaniu partnera.
+     * Młody agent w bezpiecznych warunkach powinien po prostu błąkać się spokojnie.
+     */
+    @Test
+    void shouldNotSeekMateIfUnderageEvenIfHealthyAndLowInfection() {
+        // Arrange - infekcja (0.02) poniżej progu paniki (0.05)
+        WorldContext context = new WorldContext(0.02, false, 100, 2);
+        when(mockHuman.getHealthStatus()).thenReturn(HealthStatus.HEALTHY);
+        // Zastępujemy wiek z @BeforeEach na niepełnoletni
+        when(mockHuman.getAge()).thenReturn(5);
+
+        // Act
+        strategy.makeDecision(mockHuman, context);
+
+        // Assert
+        verify(mockHuman).setWearingMask(false);
+        verify(mockHuman).setWantsHospital(false);
+        // Sprawdzamy, czy przypisano strategię "spokojnego" błądzenia, a nie prokreacyjną
+        verify(mockHuman).setMovementStrategy(mockCalmMovement);
     }
 }
