@@ -1,6 +1,7 @@
 package epidemic.model;
 
 import epidemic.service.Config;
+import epidemic.strategies.decision.DecisionStrategy;
 import epidemic.strategies.movement.MovementStrategy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +22,18 @@ class HumanTest {
     @BeforeEach
     void setUp() {
         mockedConfig = Mockito.mockStatic(Config.class);
-        // Ustawienie konfiguracji pod wzór testów Agenta (z którego Human dziedziczy) i podatności
         mockedConfig.when(() -> Config.getDouble("agent.defaultNaturalMortality", 0.01)).thenReturn(0.01);
-        mockedConfig.when(() -> Config.getDouble("vulnerability.maskMultiplier", 0.3)).thenReturn(0.5); // Użyjemy 0.5 dla łatwiejszych obliczeń
-        mockedConfig.when(() -> Config.getDouble("vulnerability.vaccineMultiplier", 0.1)).thenReturn(0.2); // Użyjemy 0.2
+        mockedConfig.when(() -> Config.getDouble("vulnerability.maskMultiplier", 0.3)).thenReturn(0.5);
+        mockedConfig.when(() -> Config.getDouble("vulnerability.vaccineMultiplier", 0.1)).thenReturn(0.2);
+
+        // Zabezpieczenie wymagane przez klasę bazową Agent przy generowaniu DTO
+        mockedConfig.when(() -> Config.getInt("mortality.maxAge", 100)).thenReturn(100);
+        mockedConfig.when(() -> Config.getDouble("agent.defaultVulnerability", 1.0)).thenReturn(1.0);
 
         mockPersonality = mock(Personality.class);
+        DecisionStrategy mockDecisionStrategy = mock(DecisionStrategy.class);
+        when(mockPersonality.getDecisionStrategy()).thenReturn(mockDecisionStrategy);
+
         mockMovement = mock(MovementStrategy.class);
 
         human = new Human(new Point2D(0, 0), 25, 2.0, 0.1, mockPersonality, mockMovement);
@@ -86,5 +93,38 @@ class HumanTest {
 
         assertTrue(human.isWantsHospital());
         assertTrue(human.isInHospital());
+    }
+
+    /**
+     * Sprawdza mechanizm powstrzymujący klasę przed tworzeniem statystyk medycznych
+     * dla zmarłych jednostek.
+     */
+    @Test
+    void shouldReturnMinimalPropertiesWhenDead() {
+        human.setDead(true);
+
+        var properties = human.getInspectionProperties();
+
+        // Martwy człowiek nie powinien mieć informacji o szczepieniu (co sprawdzałaby pełna lista)
+        boolean hasVaccineProperty = properties.stream().anyMatch(p -> "Szczepienie".equals(p.label()));
+        assertFalse(hasVaccineProperty, "Martwy agent nie powinien eksponować informacji o szczepieniu");
+
+        boolean hasDeadProperty = properties.stream().anyMatch(p -> "STAN".equals(p.label()) && "MARTWY".equals(p.stringValue()));
+        assertTrue(hasDeadProperty, "Zmarły powinien raportować swój status jako MARTWY");
+    }
+
+    /**
+     * Weryfikuje strukturę obiektu DTO człowieka z aktywną flagą wrogości.
+     */
+    @Test
+    void shouldReturnHostilePropertyWhenEnraged() {
+        human.setHostile(true);
+
+        var properties = human.getInspectionProperties();
+
+        boolean isEnraged = properties.stream()
+                .anyMatch(p -> "Status Agresji".equals(p.label()) && "WŚCIEKŁY!".equals(p.stringValue()));
+
+        assertTrue(isEnraged, "Człowiek znajdujący się w stanie furii powinien poprawnie ostrzegać GUI");
     }
 }
