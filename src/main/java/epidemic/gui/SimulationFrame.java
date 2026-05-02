@@ -45,6 +45,7 @@ public class SimulationFrame extends JFrame {
         JPanel controlPanel = new JPanel();
         JButton playPauseButton = new JButton("Pauza");
         JButton nextStepButton = new JButton("Następny Krok");
+        JButton stopButton = new JButton("Zakończ Symulację");
         JSlider speedSlider = new JSlider(
                 Config.getInt("gui.timerDelayMin", 10),
                 Config.getInt("gui.timerDelayMax", 1000),
@@ -54,6 +55,10 @@ public class SimulationFrame extends JFrame {
         mapPanel.setupMouseListener(engine);
 
         this.timer = new Timer(Config.getInt("gui.timerDelayInitial", 100), e -> step());
+        stopButton.addActionListener(e -> {
+            timer.stop();
+            handleSimulationEnd("Symulacja przerwana ręcznie przez użytkownika.");
+        });
 
         // Bezpieczne zapisywanie statystyk przed zamknięciem programu
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -91,6 +96,7 @@ public class SimulationFrame extends JFrame {
 
         controlPanel.add(playPauseButton);
         controlPanel.add(nextStepButton);
+        controlPanel.add(stopButton);
         controlPanel.add(new JLabel("Opóźnienie (ms):"));
         controlPanel.add(speedSlider);
         controlPanel.add(epochLabel);
@@ -119,11 +125,59 @@ public class SimulationFrame extends JFrame {
             sickLabel.setText("Chorzy: " + last.sickCount());
             recoveredLabel.setText("Ozdrowieńcy: " + last.recoveredCount());
             totalLabel.setText("Populacja: " + last.totalPopulation());
+
+            boolean noInfectionsLeft = (last.healthyCount() + last.recoveredCount()) == last.totalPopulation();
+
+            if (noInfectionsLeft && history.size() > 5) {
+                timer.stop();
+                handleSimulationEnd("Epidemia wygasła. Brak aktywnych infekcji w populacji.");
+            }
         }
 
         mapPanel.repaint();
     }
 
+    /**
+     * Zatrzymuje działanie i wywołuje okno podsumowania z wykresem.
+     */
+    private void handleSimulationEnd(String reason) {
+        engine.setPaused(true);
+
+        List<EpochData> history = engine.getStats().getHistory();
+        EpochData finalData = history.get(history.size() - 1);
+
+        // POPRAWIONE: Usunięto czwarty znacznik %d, który powodował MissingFormatArgumentException
+        String report = String.format(
+                "<html><h3>%s</h3>" +
+                        "<b>Czas trwania:</b> %d epok<br>" +
+                        "<b>Ocaleni (Zdrowi + Ozdrowieńcy):</b> %d<br><br>" +
+                        "Czy chcesz wygenerować wykresy i zamknąć program?</html>",
+                reason,
+                history.size(),
+                (finalData.healthyCount() + finalData.recoveredCount())
+        );
+
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                report,
+                "Koniec Symulacji",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE
+        );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            String fileName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
+            engine.getStats().exportToCSV(fileName);
+
+            new Thread(() -> {
+                epidemic.charts.SimulationChartGenerator.showResults(fileName);
+            }).start();
+
+            this.dispose();
+        } else {
+            System.out.println("Kontynuacja pauzy.");
+        }
+    }
     /**
      * Metoda inicjująca wyświetlanie okna i uruchamiająca pętlę symulacji.
      */
@@ -131,4 +185,5 @@ public class SimulationFrame extends JFrame {
         setVisible(true);
         timer.start();
     }
+
 }

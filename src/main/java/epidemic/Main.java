@@ -2,6 +2,7 @@ package epidemic;
 
 import epidemic.engine.SimulationEngine;
 import epidemic.factory.AgentFactory;
+import epidemic.factory.PersonalityFactory;
 import epidemic.gui.SimulationFrame;
 import epidemic.model.*;
 import epidemic.service.Config;
@@ -36,7 +37,7 @@ public class Main {
                 Config.getInt("virus.defaultDuration", 15)
         );
 
-        AgentFactory factory = new AgentFactory();
+
         Random random = new Random();
 
         // 3. Przygotowanie Strategii
@@ -45,6 +46,10 @@ public class Main {
         MovementStrategy normalMove = new RandomWalkStrategy();
         MovementStrategy seekMate = new SeekMateStrategy();
         MovementStrategy maliciousPursuit = new MaliciousPursuitStrategy();
+
+        PersonalityFactory personalityFactory = new PersonalityFactory(
+                seekHospital, distancing, normalMove, seekMate, maliciousPursuit);
+        AgentFactory factory = new AgentFactory(personalityFactory);
 
         // 4. Dynamiczne dodawanie Szpitali
         int hospitalCount = Config.getInt("hospital.count", 0);
@@ -62,21 +67,8 @@ public class Main {
 
         for (int i = 0; i < humanCount; i++) {
             Point2D pos = new Point2D(random.nextInt(width), random.nextInt(height));
-            Personality personality;
 
-            double rand = random.nextDouble();
-
-            // Losowanie osobowości na podstawie proporcji
-            if (rand < rationalRatio) {
-                personality = new Personality(new RationalDecisionStrategy(
-                        seekHospital, distancing, normalMove, seekMate));
-            } else if (rand < rationalRatio + panickedRatio) {
-                personality = new Personality(new PanickedDecisionStrategy(
-                        distancing, normalMove, seekHospital, seekMate));
-            } else {
-                personality = new Personality(new VindictiveDecisionStrategy(
-                        maliciousPursuit, seekHospital, normalMove));
-            }
+            Personality personality = personalityFactory.generateRandomPersonality();
 
             int age = Config.getInt("human.minAge", 20) + random.nextInt(Config.getInt("human.maxAgeRange", 40));
             double speed = Config.getDouble("human.speed", 1.0);

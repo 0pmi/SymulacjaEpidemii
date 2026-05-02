@@ -11,6 +11,12 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class AgentFactory {
 
+    private final PersonalityFactory personalityFactory;
+
+    public AgentFactory(PersonalityFactory personalityFactory) {
+        this.personalityFactory = personalityFactory;
+    }
+
     public Human createHuman(Point2D pos, int age, double baseSpeed, Personality personality, MovementStrategy strategy) {
         return new Human(pos, age, baseSpeed, Config.getDouble("human.initialResistance", 0.1), personality, strategy);
     }
@@ -43,8 +49,8 @@ public class AgentFactory {
     }
 
     private Human createHumanOffspring(Point2D pos, Human a, Human b, MovementStrategy strategy) {
-        Personality childPersonality = ThreadLocalRandom.current().nextBoolean() ?
-                a.getPersonality() : b.getPersonality();
+        Personality childPersonality = personalityFactory.generateRandomPersonality();
+
         return new Human(pos, 0, a.getBaseSpeed(), Config.getDouble("human.offspringResistance", 1.0), childPersonality, strategy);
     }
 

@@ -36,25 +36,18 @@ public class Human extends Agent implements HospitalUser {
 
     @Override
     public List<InspectionProperty> getInspectionProperties() {
-        // Pobieramy podstawowe informacje wygenerowane przez klasę Agent
         List<InspectionProperty> props = super.getInspectionProperties();
 
-        // Jeśli metoda bazowa uznała, że agent nie żyje, nie ma sensu wyświetlać szczepień
         if (isDead()) {
             return props;
         }
-
-        // Dodajemy specyficzne dla człowieka dane
         if (isHostile()) {
             props.add(InspectionProperty.textColored("Status Agresji", "WŚCIEKŁY!", Color.BLACK));
         }
-
-        // Atrybuty medyczne z interfejsu HospitalUser
         props.add(InspectionProperty.text("Szczepienie", isVaccinated() ? "Tak" : "Nie"));
         props.add(InspectionProperty.text("W szpitalu", isInHospital() ? "Tak" : "Nie"));
         props.add(InspectionProperty.text("Chce do szpitala", isWantsHospital() ? "Tak" : "Nie"));
 
-        // Strategia behawioralna podświetlona kolorem SteelBlue
         String decisionName = getPersonality().getDecisionStrategy().getClass().getSimpleName();
         props.add(InspectionProperty.textColored("Strategia Decyzyjna", decisionName, new Color(70, 130, 180)));
 
