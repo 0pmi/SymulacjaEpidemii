@@ -84,9 +84,14 @@ mvn test
 ```
 Pełny raport dostępny jest w: `target/site/jacoco/index.html`
 
+## Dokumentacja Techniczna
+Projekt posiada pełną dokumentacja Javadoc dostępną w dwóch formach:
+*   **Online**: [Zobacz dokumentację techniczną projektu](https://0pmi.github.io/SymulacjaEpidemii/)
+*   **Lokalna**: Możliwa do wygenerowania komendą `mvn javadoc:javadoc` (pliki HTML pojawią się w `target/site/apidocs/`).
+
 ---
 *Projekt wykonany w ramach laboratorium Programowanie Obiektowe na kierunku Informatyka Techniczna na wydziale WIT Politechniki Wrocławskiej*
 
 *Maj 2026*
 
-*Wersja: 1.0.3*
+*Wersja: 1.0.6*
