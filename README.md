@@ -24,21 +24,21 @@ Projekt udostępnia trzy metody uruchomienia, dostępne w sekcji **Releases** re
 
 ### 1. Wersja Portable (Zalecana)
 Kompletna paczka zawierająca dedykowane środowisko uruchomieniowe. Nie wymaga instalacji Javy w systemie.
-*   **Archiwum**: `Symulacja_v1.0.4_Portable.zip`
+*   **Archiwum**: `SymulacjaEpidemii_v1.0.7_Portable.zip`
 *   **Uruchomienie**: Wypakuj ZIP i uruchom plik `SymulacjaEpidemii.exe`.
 *    Plik `config.properties` znajduje się bezpośrednio w folderze głównym obok aplikacji.
 
 ### 2. Instalator EXE
 Standardowy instalator Windows, który konfiguruje skróty w systemie.
-*   **Plik**: `SymulacjaEpidemii.exe`
+*   **Plik**: `SymulacjaEpidemii_v1.0.7_Setup.exe`
 *   **Wymagania**: System Windows.
 *   Po instalacji pobierz i dodaj plik config.properties obok pliku wykonywalnego w celu możliwości edycji konfiguracji symulacji.
 
 ### 3. Plik Wykonywalny JAR
 Dla systemów z zainstalowanym środowiskiem Java.
-*   **Plik**: `SymulacjaEpidemii.jar`
+*   **Plik**: `SymulacjaEpidemii_v1.0.7.jar`
 *   **Wymagania**: Środowisko JRE 21.
-*   **Uruchomienie**: `java -jar SymulacjaEpidemii.jar`
+*   **Uruchomienie**: `java -jar SymulacjaEpidemii_v1.0.7.jar`
 
 ## Konfiguracja (config.properties)
 Większość parametrów symulacji można modyfikować bez rekompilacji kodu. Kluczowe sekcje pliku konfiguracyjnego obejmują:
