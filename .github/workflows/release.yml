@@ -21,23 +21,23 @@ jobs:
       - name: Budowanie JAR (Maven)
         run: mvn clean package
 
-      - name: Przygotowanie plików do paczki
+      - name: Przygotowanie czystej paczki (Staging)
         run: |
-            copy src\main\resources\config.properties target\
+          mkdir dist
+          copy target\SymulacjaEpidemii.jar dist\
+          copy src\main\resources\config.properties dist\
 
       - name: Tworzenie EXE i wersji Portable
         run: |
-                # 1. Tworzenie standardowego instalatora EXE
-                jpackage --type exe --name "SymulacjaEpidemii" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
-                
-                # 2. Tworzenie gotowego folderu z aplikacją i JRE
-                jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --dest portable
-                
-                # 3. Kopiowanie pliku config bezpośrednio do folderu głównego wersji Portable
-                copy src\main\resources\config.properties portable\SymulacjaEpidemii_Portable\
-                
-                # 4. Pakowanie folderu do archiwum ZIP
-                powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_v${{ github.ref_name }}_Portable.zip
+          # 1. Tworzenie EXE (używamy folderu dist zamiast target)
+          jpackage --type exe --name "SymulacjaEpidemii" --input dist --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+          
+          # 2. Tworzenie wersji Portable
+          jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input dist --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --dest portable
+          
+          # 3. Pakowanie ZIP
+          powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_v${{ github.ref_name }}_Portable.zip
+
       - name: Generowanie Javadoc
         run: mvn javadoc:javadoc
 
