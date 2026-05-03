@@ -24,19 +24,19 @@ jobs:
       - name: Przygotowanie czystej paczki (Staging)
         run: |
           mkdir dist
-          copy target\SymulacjaEpidemii.jar dist\
+          copy target\SymulacjaEpidemii.jar dist\SymulacjaEpidemii_${{ github.ref_name }}.jar
           copy src\main\resources\config.properties dist\
 
       - name: Tworzenie EXE i wersji Portable
         run: |
           # 1. Tworzenie EXE (używamy folderu dist zamiast target)
-          jpackage --type exe --name "SymulacjaEpidemii" --input dist --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+          jpackage --type exe --name "SymulacjaEpidemii_${{ github.ref_name }}_Setup" --input dist --main-jar SymulacjaEpidemii_${{ github.ref_name }}.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
           
           # 2. Tworzenie wersji Portable
-          jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input dist --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --dest portable
+          jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input dist --main-jar SymulacjaEpidemii_${{ github.ref_name }}.jar --main-class epidemic.Main --dest portable
           
           # 3. Pakowanie ZIP
-          powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_v${{ github.ref_name }}_Portable.zip
+          powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_${{ github.ref_name }}_Portable.zip
 
       - name: Generowanie Javadoc
         run: mvn javadoc:javadoc
@@ -52,9 +52,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-                  target/SymulacjaEpidemii.jar
-                  output/*.exe
-                  output/*.zip
-                  src/main/resources/config.properties
+            dist/*.jar
+            output/*.exe
+            output/*.zip
+            dist/config.properties
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -94,4 +94,4 @@ Projekt posiada pełną dokumentacja Javadoc dostępną w dwóch formach:
 
 *Maj 2026*
 
-*Wersja: 1.0.6*
+*Wersja: 1.0.7*
