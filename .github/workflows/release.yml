@@ -1,0 +1,35 @@
+name: Budowanie wersji Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Tag wersji
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Konfiguracja Javy 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Budowanie JAR (Maven)
+        run: mvn clean package
+
+      - name: Tworzenie EXE (jpackage)
+        run: |
+          jpackage --type exe --name "SymulacjaEpidemii" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+
+      - name: Publikacja na GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/SymulacjaEpidemii.jar
+            output/SymulacjaEpidemii-1.0.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
