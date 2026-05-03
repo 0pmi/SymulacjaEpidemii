@@ -3,7 +3,7 @@ name: Budowanie wersji Release
 on:
   push:
     tags:
-      - 'v*' # Tag wersji
+      - 'v*' # Wyzwalane przy każdym tagu zaczynającym się od v
 
 jobs:
   build:
@@ -24,19 +24,43 @@ jobs:
       - name: Przygotowanie czystej paczki (Staging)
         run: |
           mkdir dist
-          copy target\SymulacjaEpidemii.jar dist\SymulacjaEpidemii_${{ github.ref_name }}.jar
+          copy target\SymulacjaEpidemii.jar dist\
           copy src\main\resources\config.properties dist\
 
       - name: Tworzenie EXE i wersji Portable
+        shell: bash
         run: |
-          # 1. Tworzenie EXE (używamy folderu dist zamiast target)
-          jpackage --type exe --name "SymulacjaEpidemii_${{ github.ref_name }}_Setup" --input dist --main-jar SymulacjaEpidemii_${{ github.ref_name }}.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+          # 1. Wyciągnięcie czystego numeru wersji (np. z v1.0.7 robi 1.0.7)
+          CLEAN_VERSION=${GITHUB_REF_NAME#v}
           
-          # 2. Tworzenie wersji Portable
-          jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input dist --main-jar SymulacjaEpidemii_${{ github.ref_name }}.jar --main-class epidemic.Main --dest portable
+          # 2. Budowanie instalatora EXE
+          # Używamy prostej nazwy wewnętrznej dla stabilności Windowsa
+          jpackage --type exe \
+            --name "SymulacjaEpidemii" \
+            --app-version "$CLEAN_VERSION" \
+            --input dist \
+            --main-jar SymulacjaEpidemii.jar \
+            --main-class epidemic.Main \
+            --win-dir-chooser --win-shortcut \
+            --dest output
+
+          # 3. Zmiana nazwy instalatora na taką z tagiem dla wersji Release
+          mv output/SymulacjaEpidemii-*.exe output/SymulacjaEpidemii_${GITHUB_REF_NAME}_Setup.exe
+
+          # 4. Budowanie obrazu aplikacji (Portable)
+          jpackage --type app-image \
+            --name "SymulacjaEpidemii_Portable" \
+            --app-version "$CLEAN_VERSION" \
+            --input dist \
+            --main-jar SymulacjaEpidemii.jar \
+            --main-class epidemic.Main \
+            --dest portable
+
+          # 5. Pakowanie wersji Portable do ZIP
+          powershell Compress-Archive -Path portable/SymulacjaEpidemii_Portable/* -DestinationPath output/SymulacjaEpidemii_${GITHUB_REF_NAME}_Portable.zip
           
-          # 3. Pakowanie ZIP
-          powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_${{ github.ref_name }}_Portable.zip
+          # 6. Przygotowanie JAR-a z wersją w nazwie do publikacji
+          cp dist/SymulacjaEpidemii.jar output/SymulacjaEpidemii_${GITHUB_REF_NAME}.jar
 
       - name: Generowanie Javadoc
         run: mvn javadoc:javadoc
@@ -48,13 +72,14 @@ jobs:
           publish_dir: target/site/apidocs
           force_orphan: true
           enable_jekyll: false
+
       - name: Publikacja na GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*.jar
             output/*.exe
             output/*.zip
+            output/*.jar
             dist/config.properties
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
