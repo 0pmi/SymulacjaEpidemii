@@ -39,13 +39,13 @@ jobs:
                 # 4. Pakowanie folderu do archiwum ZIP
                 powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_v${{ github.ref_name }}_Portable.zip
       - name: Generowanie Javadoc
-        run: mvn javadoc:javadoc -Dsourcepath=src/main/java -Dencoding=UTF-8 -DoutputDirectory=target/site/apidocs
+        run: mvn javadoc:javadoc -Dencoding=UTF-8
 
       - name: Publikacja Javadoc na GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/site/apidocs
+          publish_dir: target/site/apidocs
           force_orphan: true
           enable_jekyll: false
       - name: Publikacja na GitHub Release
