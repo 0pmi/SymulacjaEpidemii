@@ -23,7 +23,7 @@ jobs:
 
       - name: Przygotowanie plików do paczki
         run: |
-          copy config.properties target/
+          copy src\main\resources\config.properties target\
 
       - name: Tworzenie EXE (jpackage)
         run: |
