@@ -23,18 +23,28 @@ jobs:
 
       - name: Przygotowanie plików do paczki
         run: |
-          copy src\main\resources\config.properties target\
+            copy src\main\resources\config.properties target\
 
-      - name: Tworzenie EXE (jpackage)
-        run: |
-          jpackage --type exe --name "SymulacjaEpidemii" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+            - name: Tworzenie EXE i wersji Portable
+              run: |
+                # 1. Tworzenie standardowego instalatora EXE
+                jpackage --type exe --name "SymulacjaEpidemii" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
+                
+                # 2. Tworzenie gotowego folderu z aplikacją i JRE
+                jpackage --type app-image --name "SymulacjaEpidemii_Portable" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --dest portable
+                
+                # 3. Kopiowanie pliku config bezpośrednio do folderu głównego wersji Portable
+                copy src\main\resources\config.properties portable\SymulacjaEpidemii_Portable\
+                
+                # 4. Pakowanie folderu do archiwum ZIP
+                powershell Compress-Archive -Path portable\SymulacjaEpidemii_Portable\* -DestinationPath output\SymulacjaEpidemii_v${{ github.ref_name }}_Portable.zip
 
-      - name: Publikacja na GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            target/SymulacjaEpidemii.jar
-            output/SymulacjaEpidemii-1.0.exe
-            src/main/resources/config.properties
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Publikacja na GitHub Release
+              uses: softprops/action-gh-release@v1
+              with:
+                files: |
+                  target/SymulacjaEpidemii.jar
+                  output/SymulacjaEpidemii.exe
+                  output/*.zip
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
