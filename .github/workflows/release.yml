@@ -21,6 +21,10 @@ jobs:
       - name: Budowanie JAR (Maven)
         run: mvn clean package
 
+      - name: Przygotowanie plików do paczki
+        run: |
+          copy config.properties target/
+
       - name: Tworzenie EXE (jpackage)
         run: |
           jpackage --type exe --name "SymulacjaEpidemii" --input target --main-jar SymulacjaEpidemii.jar --main-class epidemic.Main --win-dir-chooser --win-shortcut --dest output
@@ -31,5 +35,6 @@ jobs:
           files: |
             target/SymulacjaEpidemii.jar
             output/SymulacjaEpidemii-1.0.exe
+            src/main/resources/config.properties
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
