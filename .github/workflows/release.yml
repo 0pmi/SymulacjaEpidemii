@@ -30,7 +30,7 @@ jobs:
       - name: Tworzenie EXE i wersji Portable
         shell: bash
         run: |
-          # 1. Wyciągnięcie czystego numeru wersji (np. z v1.0.7 robi 1.0.7)
+          # 1. Wyciągnięcie czystego numeru wersji
           CLEAN_VERSION=${GITHUB_REF_NAME#v}
           
           # 2. Budowanie instalatora EXE
@@ -57,7 +57,7 @@ jobs:
             --dest portable
 
           # 5. Pakowanie wersji Portable do ZIP
-          powershell Compress-Archive -Path portable/SymulacjaEpidemii_Portable/* -DestinationPath output/SymulacjaEpidemii_${GITHUB_REF_NAME}_Portable.zip
+          powershell -Command "Compress-Archive -Path 'portable/SymulacjaEpidemii_Portable/*' -DestinationPath 'output/SymulacjaEpidemii_${GITHUB_REF_NAME}_Portable.zip'"
           
           # 6. Przygotowanie JAR-a z wersją w nazwie do publikacji
           cp dist/SymulacjaEpidemii.jar output/SymulacjaEpidemii_${GITHUB_REF_NAME}.jar
