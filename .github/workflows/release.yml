@@ -44,7 +44,8 @@ jobs:
         with:
           files: |
                   target/SymulacjaEpidemii.jar
-                  output/SymulacjaEpidemii.exe
+                  output/*.exe
                   output/*.zip
+                  src/main/resources/config.properties
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
