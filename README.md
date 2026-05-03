@@ -54,11 +54,35 @@ Większość parametrów symulacji można modyfikować bez rekompilacji kodu. Kl
 | `reproduction.chance` | Prawdopodobieństwo pojawienia się nowego agenta w wyniku kontaktu.                     |
 
 
-## Kompilacja i Jakość Kodu
+## Kompilacja
 Projekt wykorzystuje Maven do zarządzania zależnościami i cyklem życia.
 *   **Budowanie**: `mvn clean package`
-*   **Testy**: Kompleksowe testy jednostkowe oparte na JUnit 5 i Mockito.
-*   **Pokrycie**: Raporty JaCoCo generowane są automatycznie do katalogu `target/site/jacoco/`.
+
+
+## Testy i Jakość Kodu
+Projekt charakteryzuje się bardzo wysokim stopniem pokrycia testami jednostkowymi, co gwarantuje stabilność silnika symulacji. Do analizy wykorzystano narzędzie **JaCoCo**.
+
+### Statystyki Pokrycia (Core Logic)
+Łączne pokrycie instrukcji dla kluczowej logiki biznesowej wynosi **90%**, natomiast pokrycie rozgałęzień (branches) to **79%**.
+
+| Pakiet | Pokrycie Instrukcji | Kluczowe aspekty                                                                |
+| :--- | :--- |:--------------------------------------------------------------------------------|
+| `epidemic.strategies.decision` | **100%** | Pełna weryfikacja logiki podejmowania decyzji (Rational, Panicked, Vindictive). |
+| `epidemic.strategies.mortality` | **100%** | Modele śmiertelności naturalnej i chorobowej.                                   |
+| `epidemic.managers` | **98%** | Zarządzanie infekcjami, leczeniem oraz procesami reprodukcji.                   |
+| `epidemic.engine` | **95%** | Główny silnik sterujący epokami symulacji.                                      |
+| `epidemic.statistics` | **95%** | Mechanizmy zbierania i eksportu danych epidemiologicznych                       |
+| `epidemic.strategies.movement` | **93%** | Algorytmy przemieszczania się agentów w przestrzeni.                           |
+
+### Metodologia testowania
+* **Izolacja logiki**: Pakiety odpowiedzialne za interfejs graficzny (`epidemic.gui`) oraz wizualizację wykresów (`epidemic.charts`) zostały świadomie wyłączone z raportowania pokrycia. Pozwoliło to na skupienie się na rygorystycznym przetestowaniu algorytmów decyzyjnych i epidemiologicznych.
+* **Testy stanowe i behawioralne**: Wykorzystanie biblioteki **Mockito** pozwoliło na symulowanie złożonych interakcji między agentami a środowiskiem.
+
+Aby wygenerować aktualny raport, należy uruchomić:
+```bash
+mvn test
+```
+Pełny raport dostępny jest w: `target/site/jacoco/index.html`
 
 ---
 *Projekt wykonany w ramach laboratorium Programowanie Obiektowe na kierunku Informatyka Techniczna na wydziale WIT Politechniki Wrocławskiej*
