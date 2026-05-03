@@ -84,6 +84,20 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <show>private</show> <!-- Dokumentuj wszystko: public, protected, package i private -->
+                    <encoding>UTF-8</encoding>
+                    <docencoding>UTF-8</docencoding>
+                    <charset>UTF-8</charset>
+                    <doclint>none</doclint> <!-- Ignoruj błędy w składni Javadoc-->
+                </configuration>
+            </plugin>
+
             <!-- Plugin JaCoCo do raportowania pokrycia testami -->
             <plugin>
                 <groupId>org.jacoco</groupId>
