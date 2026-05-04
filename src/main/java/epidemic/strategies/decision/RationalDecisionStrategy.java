@@ -8,10 +8,11 @@ import epidemic.strategies.movement.MovementStrategy;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Strategia decyzyjna modelująca racjonalne podejście.
- * Agent reaguje na zagrożenie proporcjonalnie, stosuje dystansowanie społeczne
- * oraz udaje się do placówek medycznych na szczepienia lub leczenie zaawansowanej infekcji.
- * Dodatkowo przewiduje aktywne poszukiwanie partnerów w stanie pełnego zdrowia.
+ * Strategia decyzyjna (wzorzec Strategy) modelująca racjonalne i zrównoważone podejście agenta.
+ * Jednostka adaptuje się do sytuacji w sposób analityczny: stosuje dystansowanie społeczne
+ * przy wysokim odsetku zakażeń, udaje się do placówek medycznych na szczepienia prewencyjne
+ * lub leczenie w zaawansowanym stadium infekcji, a w czasie spokoju wykazuje naturalne
+ * potrzeby prokreacyjne.
  */
 public class RationalDecisionStrategy implements DecisionStrategy {
 
@@ -20,6 +21,14 @@ public class RationalDecisionStrategy implements DecisionStrategy {
     private final MovementStrategy normalMovementStrategy;
     private final MovementStrategy seekMateMovementStrategy;
 
+    /**
+     * Inicjalizuje strategię racjonalną z odpowiednim zestawem wstrzykniętych zachowań ruchowych.
+
+     * @param hospitalMovementStrategy Strategia wyznaczająca trasę do najbliższej placówki medycznej.
+     * @param distancingMovementStrategy Strategia zachowania dystansu i unikania skupisk ludzkich.
+     * @param normalMovementStrategy Pasywny wzorzec ruchu stosowany w bezpiecznym środowisku.
+     * @param seekMateMovementStrategy Prokreacyjna strategia poszukiwania partnera do rozrodu.
+     */
     public RationalDecisionStrategy(
             MovementStrategy hospitalMovementStrategy,
             MovementStrategy distancingMovementStrategy,
@@ -31,6 +40,15 @@ public class RationalDecisionStrategy implements DecisionStrategy {
         this.seekMateMovementStrategy = seekMateMovementStrategy;
     }
 
+    /**
+     * Przeprowadza wieloetapową ewaluację stanu agenta w oparciu o hierarchię potrzeb i logikę racjonalną.
+     * Ozdrowieńcy odrzucają obostrzenia i wracają do normy. Agenci w zaawansowanym stadium choroby
+     * lub chętni na szczepienia priorytetyzują wizytę w szpitalu. W przypadku wysokiego wskaźnika
+     * infekcji w populacji agent zakłada maskę i aktywuje protokół dystansowania społecznego.
+     *
+     * @param human Agent poddawany procesom decyzyjnym.
+     * @param world Aktualna telemetria świata (współczynnik zakażeń, dostępność szczepień).
+     */
     @Override
     public void makeDecision(Human human, WorldContext world) {
         if (human.getHealthStatus() == HealthStatus.RECOVERED) {
@@ -61,13 +79,10 @@ public class RationalDecisionStrategy implements DecisionStrategy {
         }
     }
 
-    /**
-     * Wyznacza strategię ruchu w przypadku braku aktywnych zagrożeń lub potrzeb medycznych.
-     * Weryfikuje gotowość agenta do podjęcia aktywnego poszukiwania partnera na podstawie
-     * wieku oraz statusu zdrowotnego.
-     *
-     * @param human Oczeniany agent.
-     * @return Pasywna strategia ruchu lub strategia prokreacyjna.
+    /*
+     * Wyznacza strategię ruchu w przypadku braku aktywnych zagrożeń lub nagłych potrzeb medycznych.
+     * Weryfikuje gotowość zdrowego agenta do podjęcia aktywnego poszukiwania partnera na podstawie
+     * jego wieku i prawdopodobieństwa zdefiniowanego w konfiguracji.
      */
     private MovementStrategy determinePassiveMovement(Human human) {
         boolean isAdult = human.getAge() >= human.getSpeciesType().getMaturityAge();

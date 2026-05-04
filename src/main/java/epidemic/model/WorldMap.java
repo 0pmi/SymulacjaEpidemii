@@ -5,25 +5,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Reprezentuje środowisko przestrzenne symulacji.
- * Zarządza kolekcjami agentów i szpitali oraz deleguje złożone zapytania
- * przestrzenne do dedykowanego SpatialManagera.
+ * Centralne repozytorium reprezentujące dyskretne środowisko przestrzenne symulacji.
+ * Zarządza cyklem życia oraz kolekcjami agentów i infrastruktury medycznej (szpitali).
+ * Realizuje opóźnione modyfikacje list (wzorzec podwójnego buforowania) w celu zapewnienia
+ * bezpieczeństwa wątkowego i uniknięcia błędów podczas iteracji, a także deleguje
+ * złożone zapytania przestrzenne do dedykowanego komponentu {@link SpatialManager}.
  */
 public class WorldMap {
     private List<Agent> agents;
     private List<Hospital> hospitals;
     private int width;
     private int height;
-
     private SpatialManager spatialManager;
-
-    // Bufory do bezpiecznego zarządzania cyklem życia agentów podczas iteracji
     private List<Agent> agentsToAdd;
     private List<Agent> agentsToRemove;
-
-    // Mapa stref skażeń. Kluczem jest ciąg znaków w formacie "X,Y" dla wydajnego wyszukiwania w czasie O(1).
     private final java.util.Map<String, InfectionField> airborneFields = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * Inicjalizuje nową przestrzeń o zadanych wymiarach.
+     *
+     * @param width Szerokość mapy w jednostkach logicznych.
+     * @param height Wysokość mapy w jednostkach logicznych.
+     * @param cellSize Rozmiar pojedynczej komórki siatki używanej przez menedżera przestrzennego.
+     */
     public WorldMap(int width, int height, double cellSize) {
         this.width = width;
         this.height = height;
@@ -35,26 +39,30 @@ public class WorldMap {
     }
 
     /**
-     * Zleca dodanie agenta do mapy. Agent zostanie faktycznie dodany
-     * dopiero po wywołaniu metody {@link #applyChanges()}.
-     * @param agent Agent do dodania.
+     * Zleca dodanie nowego agenta do środowiska.
+     * Wykorzystuje mechanizm buforowania – agent zostanie faktycznie udostępniony
+     * dla logiki silnika dopiero po wywołaniu metody {@link #applyChanges()}.
+     *
+     * @param agent Jednostka do zaaplikowania na mapie.
      */
     public void addAgent(Agent agent) {
         agentsToAdd.add(agent);
     }
 
     /**
-     * Zleca usunięcie agenta z mapy. Agent zostanie faktycznie usunięty
-     * dopiero po wywołaniu metody {@link #applyChanges()}.
-     * @param agent Agent do usunięcia.
+     * Zleca usunięcie istniejącego agenta ze środowiska (np. w wyniku zgonu).
+     * Podobnie jak przy dodawaniu, usunięcie zostaje zbuforowane.
+     *
+     * @param agent Jednostka do zaaplikowania na mapie.
      */
     public void removeAgent(Agent agent) {
         agentsToRemove.add(agent);
     }
 
     /**
-     * Aplikuje zakolejkowane zmiany z buforów do głównej listy agentów.
-     * Używane do zapobiegania ConcurrentModificationException w głównej pętli.
+     * Aplikuje wszystkie zakolejkowane zmiany z buforów do głównej listy agentów.
+     * Metoda ta zapobiega wyjątkom typu {@code ConcurrentModificationException} podczas
+     * iterowania po głównej kolekcji w poszczególnych fazach epoki.
      */
     public void applyChanges() {
         agents.addAll(agentsToAdd);
@@ -63,14 +71,32 @@ public class WorldMap {
         agentsToRemove.clear();
     }
 
+    /**
+     * Wyszukuje agentów znajdujących się w określonym promieniu od zadanego punktu przestrzennego.
+     *
+     * @param pos Centralny punkt wyszukiwania.
+     * @param radius Zasięg wyszukiwania w jednostkach mapy.
+     * @return Lista jednostek znajdujących się w strefie.
+     */
     public List<Agent> getNeighbors(Point2D pos, double radius) {
         return spatialManager.getNearbyAgentsAtPos(pos, radius);
     }
 
+    /**
+     * Wyszukuje bezpośrednich sąsiadów dla wskazanego agenta.
+     *
+     * @param agent Agent stanowiący centrum obszaru poszukiwań.
+     * @param radius Promień wyszukiwania.
+     * @return Lista jednostek przebywających w pobliżu.
+     */
     public List<Agent> getNeighborsForAgent(Agent agent, double radius) {
         return spatialManager.getNearbyAgents(agent, radius);
     }
 
+    /**
+     * Zleca przebudowę globalnego indeksu przestrzennego na podstawie aktualnych
+     * pozycji wszystkich agentów w głównej kolekcji.
+     */
     public void rebuildSpatialIndex() {
         spatialManager.rebuild(this);
     }
@@ -80,6 +106,11 @@ public class WorldMap {
     public List<Agent> getAgents() { return agents; }
     public List<Hospital> getHospitals() { return hospitals; }
 
+    /**
+     * Umieszcza nową placówkę medyczną w przestrzeni symulacji.
+     *
+     * @param hospital Skonfigurowany obiekt szpitala.
+     */
     public void addHospital(Hospital hospital) {
         this.hospitals.add(hospital);
     }
@@ -87,9 +118,10 @@ public class WorldMap {
     public SpatialManager getSpatialManager() { return spatialManager; }
 
     /**
-     * Wyszukuje szpital znajdujący się dokładnie we wskazanych współrzędnych.
-     * @param pos Pozycja do sprawdzenia.
-     * @return Obiekt Hospital lub null, jeśli na danym polu nie ma szpitala.
+     * Wyszukuje szpital znajdujący się dokładnie we wskazanych współrzędnych geograficznych siatki.
+     *
+     * @param pos Pozycja do weryfikacji.
+     * @return Obiekt placówki lub {@code null}, jeśli infrastruktura nie istnieje w danym punkcie.
      */
     public Hospital getHospitalAt(Point2D pos) {
         return hospitals.stream()
@@ -99,9 +131,10 @@ public class WorldMap {
     }
 
     /**
-     * Sprawdza, czy podana pozycja znajduje się wewnątrz granic mapy.
-     * @param pos Pozycja do weryfikacji.
-     * @return true, jeśli punkt leży w granicach, w przeciwnym razie false.
+     * Sprawdza geometryczną poprawność położenia na mapie.
+     *
+     * @param pos Punkt przestrzenny do weryfikacji.
+     * @return {@code true}, jeśli punkt leży ściśle wewnątrz dozwolonych granic mapy.
      */
     public boolean isWithinBounds(Point2D pos) {
         return pos.x() >= 0 && pos.x() < width &&
@@ -109,10 +142,13 @@ public class WorldMap {
     }
 
     /**
-     * Rejestruje nowe pole infekcji lub odświeża istniejące na danej współrzędnej siatki.
+     * Rejestruje nowe pole infekcji (aerozol) lub odświeża już istniejące na danej współrzędnej.
+     * Mapowanie realizowane jest z wykorzystaniem słownika wielowątkowego (ConcurrentHashMap),
+     * a klucz generowany jest ze złączenia współrzędnych (format "X,Y"), co gwarantuje
+     * optymalizację wyszukiwania i aktualizacji w stałym czasie O(1).
      *
-     * @param pos Dokładna pozycja źródła infekcji.
-     * @param infectivity Siła zostawionego wirusa.
+     * @param pos Dokładna pozycja źródła powstania infekcji środowiskowej.
+     * @param infectivity Parametr określający siłę zostawionego wirusa.
      */
     public void addOrRefreshInfectionField(Point2D pos, double infectivity) {
         // Normalizacja pozycji do "kratki" na mapie
@@ -129,10 +165,10 @@ public class WorldMap {
     }
 
     /**
-     * Pobiera pole infekcji z danej lokalizacji.
+     * Pobiera stan zakażenia środowiskowego z konkretnej komórki przestrzeni.
      *
-     * @param pos Pozycja do sprawdzenia.
-     * @return Obiekt InfectionField lub null, jeśli powietrze w tym miejscu jest czyste.
+     * @param pos Pozycja docelowa do przeanalizowania.
+     * @return Odpowiedni obiekt chmury (InfectionField) lub {@code null}, jeśli powietrze w tym miejscu jest czyste.
      */
     public InfectionField getFieldAt(Point2D pos) {
         String key = (int)pos.x() + "," + (int)pos.y();
@@ -140,14 +176,19 @@ public class WorldMap {
     }
 
     /**
-     * Zwraca widok wszystkich aktywnych chmur zakaźnych (na potrzeby renderowania w GUI).
+     * Udostępnia bezstanowy widok na wszystkie aktywne chmury zakaźne w środowisku.
+     * Metoda używana głównie na potrzeby silnika renderującego (GUI).
+     *
+     * @return Kolekcja aktualnie istniejących stref skażenia.
      */
     public java.util.Collection<InfectionField> getActiveFields() {
         return airborneFields.values();
     }
 
     /**
-     * Odświeża cykl życia stref skażeń. Chmury wygasłe są usuwane z mapy.
+     * Przetwarza cykl życia stref skażeń środowiskowych.
+     * Redukuje siłę zakaźną wszystkich istniejących chmur w środowisku i automatycznie
+     * usuwa z kolekcji (ewikcja) te, które osiągnęły próg wygaśnięcia.
      */
     public void decayInfectionFields() {
         airborneFields.values().removeIf(field -> {

@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Optymalizuje zapytania przestrzenne w symulacji poprzez podział mapy na logiczną siatkę (grid).
- * Pozwala na błyskawiczne znajdowanie agentów w zadanym promieniu bez konieczności
- * iterowania po całej populacji świata.
+ * Optymalizuje zapytania przestrzenne w symulacji poprzez implementację struktury
+ * podziału przestrzennego (Grid Spatial Partitioning / Bin-Lattice).
+ * Dzieli mapę na logiczną siatkę komórek, co pozwala na błyskawiczne znajdowanie agentów
+ * w zadanym promieniu, drastycznie redukując złożoność obliczeniową z O(N^2) do wartości
+ * bliskich O(N) poprzez eliminację konieczności iterowania po całej populacji świata.
  */
 public class SpatialManager {
 
@@ -19,6 +21,15 @@ public class SpatialManager {
     private final int rows;
     private final List<Agent>[][] grid;
 
+    /**
+     * Inicjalizuje nową siatkę wyszukiwań przestrzennych.
+     *
+     * @param worldWidth Całkowita szerokość mapy świata.
+     * @param worldHeight Całkowita wysokość mapy świata.
+     * @param cellSize Rozmiar pojedynczej komórki siatki. Powinien być skorelowany
+     *                 z maksymalnym promieniem wyszukiwania (np. promieniem zakażenia),
+     *                 aby zoptymalizować liczbę odpytywanych komórek sąsiadujących.
+     */
     @SuppressWarnings("unchecked")
     public SpatialManager(double worldWidth, double worldHeight, double cellSize) {
         this.cellSize = cellSize;
@@ -34,8 +45,9 @@ public class SpatialManager {
     }
 
     /**
-     * Czyści siatkę i przypisuje agentów do odpowiednich komórek na podstawie ich bieżących koordynatów.
-     * Wywoływane obowiązkowo raz na epokę po zakończeniu fazy ruchu wszystkich agentów.
+     * Czyści siatkę i od nowa przypisuje żywych agentów do odpowiednich komórek
+     * na podstawie ich zaktualizowanych koordynatów.
+     * Wywoływane obowiązkowo raz na epokę po zakończeniu fazy przemieszczania się wszystkich jednostek.
      *
      * @param worldMap Mapa świata zawierająca aktualną listę agentów.
      */
@@ -61,11 +73,13 @@ public class SpatialManager {
     }
 
     /**
-     * Wyszukuje wszystkich żywych agentów w promieniu od danego agenta docelowego.
+     * Wyszukuje wszystkich żywych agentów przebywających w określonym promieniu
+     * od wskazanego agenta docelowego. Optymalizuje proces badając tylko komórki
+     * siatki pokrywające się z obszarem wyznaczonego promienia (Bounding Box).
      *
-     * @param centerAgent Agent stanowiący środek okręgu wyszukiwania. Wynik nie zawiera tego agenta.
-     * @param radius Promień wyszukiwania w jednostkach mapy.
-     * @return Lista znalezionych sąsiadów.
+     * @param centerAgent Agent stanowiący środek okręgu wyszukiwania. Wynik naturalnie wyklucza tego agenta.
+     * @param radius Promień wyszukiwania w jednostkach miary przestrzeni mapy.
+     * @return Lista znalezionych sąsiadów w zasięgu.
      */
     public List<Agent> getNearbyAgents(Agent centerAgent, double radius) {
         List<Agent> nearby = new ArrayList<>();
@@ -96,6 +110,14 @@ public class SpatialManager {
         return nearby;
     }
 
+    /**
+     * Wyszukuje agentów w określonym promieniu bazując na abstrakcyjnym punkcie na mapie,
+     * a nie na konkretnym agencie. Przydatne np. do weryfikacji zagęszczenia tłumu w danym sektorze.
+     *
+     * @param centerPos Dokładny punkt centralny obszaru wyszukiwania.
+     * @param radius Promień wyszukiwania.
+     * @return Lista jednostek w zasięgu zadanego punktu.
+     */
     public List<Agent> getNearbyAgentsAtPos(Point2D centerPos, double radius) {
         List<Agent> nearby = new ArrayList<>();
 
@@ -122,6 +144,9 @@ public class SpatialManager {
         return nearby;
     }
 
+    /*
+     * Oblicza odległość euklidesową (w linii prostej) między dwoma punktami.
+     */
     private double calculateDistance(Point2D p1, Point2D p2) {
         double dx = p1.x() - p2.x();
         double dy = p1.y() - p2.y();

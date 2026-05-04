@@ -6,18 +6,20 @@ import epidemic.service.Config;
 import java.util.Iterator;
 
 /**
- * Koordynuje działanie infrastruktury medycznej w symulacji.
- * Zarządza procesem leczenia w szpitalach, aplikacją szczepień
- * oraz wypisywaniem pacjentów po zakończeniu terapii.
+ * Moduł zarządzający infrastrukturą ochrony zdrowia (szpitalami).
+ * Przetwarza cykl leczenia pacjentów stacjonarnych, przyspieszając ich powrót
+ * do zdrowia oraz koordynując akcje profilaktyczne, takie jak dystrybucja szczepionek.
  */
 public class MedicalManager {
 
     /**
-     * Przetwarza cykl medyczny dla wszystkich szpitali i ich pacjentów.
-     * Pacjenci uleczeni, zaszczepieni lub niekwalifikujący się do pobytu są zwalniani.
+     * Uruchamia iterację procesu medycznego dla każdej placówki na mapie.
+     * Metoda zarządza łóżkami szpitalnymi, iterując po listach pacjentów
+     * i zwalniając miejsca zajmowane przez osoby uleczone, zaszczepione,
+     * lub te, które przestały wyrażać chęć hospitalizacji.
      *
-     * @param world Mapa zawierająca placówki medyczne.
-     * @param context Globalny kontekst środowiska.
+     * @param world Stan przestrzenny mapy zawierający infrastrukturę (szpitale).
+     * @param context Globalny kontekst środowiska decydujący m.in. o dostępności szczepionek.
      */
     public void processMedicalCare(WorldMap world, WorldContext context) {
         for (Hospital hospital : world.getHospitals()) {
@@ -34,15 +36,13 @@ public class MedicalManager {
         }
     }
 
-    /**
-     * Ewaluuje i aplikuje leczenie lub profilaktykę dla pojedynczego pacjenta.
-     *
-     * @param patient Pacjent przebywający w szpitalu.
-     * @param context Kontekst środowiska.
-     * @return true, jeśli pacjent powinien opuścić szpital (terapia zakończona); false w przeciwnym razie.
+    /*
+     * Aplikuje odpowiednią formę leczenia lub prewencji dla pojedynczego pacjenta.
+     * Prowadzi aktywną terapię dla jednostek SICK (dodatkowa redukcja czasu trwania choroby),
+     * podaje szczepienia osobom HEALTHY, jeśli są dostępne w kontekście, oraz zwalnia
+     * tzw. "hipochondryków", którzy udali się do szpitala na wyrost.
      */
     private boolean handleTreatment(HospitalUser patient, WorldContext context) {
-        // Jeśli pacjent utracił chęć przebywania w szpitalu (np. zmiana strategii decyzji)
         if (!patient.isWantsHospital()) {
             return true;
         }

@@ -9,9 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstrakcyjna klasa bazowa reprezentująca każdą encję zdolną do poruszania się
+ * Abstrakcyjna klasa bazowa reprezentująca każdą autonomiczną encję zdolną do poruszania się
  * i uczestniczenia w procesie epidemicznym na mapie symulacji.
- * Centralizuje zarządzanie pozycją, stanem zdrowia oraz podstawowym cyklem życia.
+ * Centralizuje zarządzanie pozycją przestrzenną, statusem medycznym (HealthStatus)
+ * oraz podstawowym cyklem życia biologicznym (wiek, reprodukcja, zgon).
+ * Implementuje interfejs Inspectable na potrzeby dynamicznego GUI.
  */
 public abstract class Agent implements Inspectable {
 
@@ -30,6 +32,17 @@ public abstract class Agent implements Inspectable {
     private boolean diedFromVirus = false;
     private HealthStatus healthStatus;
 
+    /**
+     * Inicjalizuje nowego agenta z podstawowymi parametrami biologicznymi.
+     * Wartości takie jak status zdrowotny (HEALTHY) i wskaźniki umieralności
+     * są pobierane i ustawiane zgodnie z globalną konfiguracją (Config).
+     *
+     * @param position Początkowa koordynata przestrzenna na siatce mapy.
+     * @param age Początkowy wiek jednostki.
+     * @param speciesType Gatunek przypisany do jednostki, determinujący np. zjadliwość.
+     * @param baseSpeed Prędkość przemieszczania się w warunkach normalnych.
+     * @param movementStrategy Przypisana strategia poruszania się (wzorzec Strategy).
+     */
     public Agent(Point2D position, int age, SpeciesType speciesType, double baseSpeed, MovementStrategy movementStrategy) {
         this.position = position;
         this.currentTarget = position;
@@ -44,34 +57,39 @@ public abstract class Agent implements Inspectable {
         this.remainingInfectionEpochs = 0;
         this.movementStrategy = movementStrategy;
     }
+
+    /**
+     * Zwraca nagłówek dla inspektora GUI w oparciu o przypisany gatunek.
+     */
     @Override
     public String getObjectName() {
         return "Typ: " + getSpeciesType().name();
     }
 
+    /**
+     * Konstruuje hierarchiczną listę właściwości telemetrycznych agenta, używanych
+     * przez warstwę widoku do renderowania paska bocznego. Metoda polimorficzna
+     * – może być nadpisywana przez klasy potomne. Dla agentów chorych (SICK/CARRIER)
+     * generowany jest dodatkowy pasek postępu infekcji.
+     *
+     * @return Uporządkowana lista obiektów InspectionProperty.
+     */
     @Override
     public List<InspectionProperty> getInspectionProperties() {
         List<InspectionProperty> props = new ArrayList<>();
 
-        // 1. Pozycja
         props.add(InspectionProperty.text("Pozycja", "[" + getPosition().x() + ", " + getPosition().y() + "]"));
-
-        // 2. Wiek - konfiguracja maksymalnego wieku z systemu
         int maxAge = Config.getInt("mortality.maxAge", 100);
-        // Przekazujemy aktualny wiek do etykiety, aby tekst nad paskiem był precyzyjny
         props.add(InspectionProperty.progressBar("Wiek (" + getAge() + ")", getAge(), maxAge, new Color(46, 139, 87)));
 
-        // 3. Jeśli agent nie żyje, natychmiast przerywamy budowanie dalszych statystyk
         if (isDead()) {
             props.add(InspectionProperty.textColored("STAN", "MARTWY", Color.BLACK));
             return props;
         }
 
-        // 4. Stan zdrowia (z odpowiednim formatowaniem kolorystycznym)
         Color healthColor = getColorForStatus(getHealthStatus());
         props.add(InspectionProperty.textColored("Stan Zdrowia", getHealthStatus().toString(), healthColor));
 
-        // 5. Przebieg infekcji (Pasek pokazujący się tylko dla chorych i nosicieli)
         if (getHealthStatus() == HealthStatus.SICK || getHealthStatus() == HealthStatus.CARRIER) {
             int defaultDuration = Config.getInt("virus.defaultDuration", 30);
             props.add(InspectionProperty.progressBar(
@@ -82,7 +100,6 @@ public abstract class Agent implements Inspectable {
             ));
         }
 
-        // 6. Wskaźniki biomechaniczne
         props.add(InspectionProperty.text("Podatność", String.format("%.2f", getVulnerabilityMultiplier())));
         props.add(InspectionProperty.text("Strategia Ruchu", getMovementStrategy().getClass().getSimpleName()));
 
@@ -90,7 +107,11 @@ public abstract class Agent implements Inspectable {
     }
 
     /**
-     * Tłumaczy status medyczny na kolor.
+     * Mapuje enumerację HealthStatus na dedykowany obiekt koloru z pakietu AWT.
+     * Używane do ujednoliconych wizualizacji na płótnie mapy i w oknie inspekcji.
+     *
+     * @param status Bieżący stan chorobowy agenta.
+     * @return Skorelowany obiekt typu Color.
      */
     protected Color getColorForStatus(HealthStatus status) {
         return switch (status) {
@@ -100,37 +121,41 @@ public abstract class Agent implements Inspectable {
             case RECOVERED -> new Color(0, 191, 255);
         };
     }
+
     /**
-     * Zwiększa wiek agenta o jedną jednostkę.
-     * Powinno być wywoływane co epokę symulacyjną.
+     * Inkrementuje licznik wieku agenta o jedną jednostkę.
+     * Częstotliwość wywoływania tej metody (np. co X epok) jest regulowana przez menedżerów.
      */
     public void incrementAge() {
         this.age++;
     }
 
     /**
-     * Określa, czy agent jest podatny na nową infekcję.
-     * Martwi agenci oraz ci, którzy już wykazują objawy (SICK), nie mogą zostać ponownie zainfekowani w tym samym czasie.
+     * Weryfikuje podatność agenta na nową infekcję w obecnym kroku symulacji.
+     * Martwi agenci oraz nosiciele z aktywną fazą pełnoobjawową (SICK) są odrzucani.
      *
-     * @return true, jeśli agent może złapać wirusa, false w przeciwnym wypadku.
+     * @return Wartość true, jeśli agent spełnia fizjologiczne kryteria do zakażenia wirusem.
      */
     public boolean canBeInfected() {
         return !isDead && healthStatus != HealthStatus.SICK;
     }
 
     /**
-     * Zmniejsza licznik pozostałych epok infekcji.
-     * Metoda uodporniona na zejście poniżej zera. Stanowi podstawę mechanizmu wyzdrowienia (RECOVERED).
+     * Zmniejsza wskaźnik żywotności wirusa w organizmie agenta.
+     * Chroni przed błędnym wyznaczeniem wartości poniżej zera. Osiągnięcie wartości
+     * minimalnej stanowi warunek przejścia do stanu ozdrowieńca (RECOVERED).
      */
     public void decrementInfectionTimer() {
         if (this.remainingInfectionEpochs > 0) {
             this.remainingInfectionEpochs--;
         }
     }
+
     /**
-     * Metoda wywoływana w każdej epoce, pozwalająca agentowi na analizę środowiska i podjęcie decyzji.
+     * Polimorficzny punkt wywołania mechanizmów decyzyjnych (Kognitywistyka).
+     * Domyślna implementacja w klasie bazowej nie wykonuje żadnych akcji (no-op).
      *
-     * @param context Aktualny stan środowiska symulacyjnego.
+     * @param context Aktualny zestaw danych telemetrycznych środowiska.
      */
     public void think(WorldContext context) {}
 
@@ -165,16 +190,21 @@ public abstract class Agent implements Inspectable {
     public void setRemainingInfectionEpochs(int remainingInfectionEpochs) {this.remainingInfectionEpochs = remainingInfectionEpochs; }
 
     /**
-     * Zwraca mnożnik podatności zależny od cech gatunku lub środowiska.
-     * Pobiera wartość bazową z globalnej konfiguracji, chyba że zostanie to nadpisane.
+     * Kalkuluje finalny współczynnik podatności jednostki na infekcję,
+     * na bazie domyślnych wartości z konfiguracji. Metoda jest zazwyczaj
+     * nadpisywana przez klasy potomne dla uwzględnienia odporności gatunkowej i odzieży.
      *
-     * @return Mnożnik podatności (wartość domyślna to 1.0).
+     * @return Mnożnik szansy na infekcję (standardowo 1.0 dla zerowych bonusów ochronnych).
      */
     public double getVulnerabilityMultiplier() {
         return Config.getDouble("agent.defaultVulnerability", 1.0);
     }
     public MovementStrategy getMovementStrategy() {return movementStrategy; }
     public void setMovementStrategy(MovementStrategy strategy) {this.movementStrategy = strategy; }
+
+    /**
+     * Zwraca zjadliwość agenta dla wariantu środowiskowego (bazując na rodzaju gatunku).
+     */
     public double getVirulence() {
         return getSpeciesType().getBaseVirulence();
     }

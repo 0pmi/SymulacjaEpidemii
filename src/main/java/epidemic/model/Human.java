@@ -7,9 +7,10 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Reprezentuje ludzkiego agenta z zaawansowaną logiką behawioralną i statusem medycznym.
- * Ludzie mogą korzystać ze środków ochrony osobistej, podlegać profilaktyce medycznej
- * oraz podejmować decyzje na podstawie przypisanej osobowości (Personality).
+ * Rozszerzenie agenta symulującego zawiłości i cechy gatunku ludzkiego.
+ * Ludzie posiadają możliwość stosowania zaawansowanej profilaktyki (szczepienia, maseczki)
+ * oraz podejmują decyzje w locie w oparciu o przydzielony im profil psychologiczny (Personality).
+ * Implementuje interfejs HospitalUser pozwalający na interakcję ze specjalistyczną infrastrukturą mapy.
  */
 public class Human extends Agent implements HospitalUser {
 
@@ -21,6 +22,16 @@ public class Human extends Agent implements HospitalUser {
     private boolean isInHospital;
     private boolean isHostile;
 
+    /**
+     * Inicjalizuje nową jednostkę ludzką z rozbudowanym stanem socjologicznym.
+     *
+     * @param position Startowa pozycja agenta na mapie wektorowej.
+     * @param age Wiek w jednostkach arbitralnych używanych przez silnik do kalkulacji zgonów.
+     * @param baseSpeed Indywidualna prędkość przemieszczania na jeden cykl zegarowy.
+     * @param resistance Wrodzona odporność biologiczna (wartość redukująca szansę na zakażenie).
+     * @param personality Profil psychologiczny zarządzający cyklem decyzyjnym (think).
+     * @param movementStrategy Domyślny wzorzec lokomocji nadany agentowi.
+     */
     public Human(Point2D position, int age, double baseSpeed,
                  double resistance, Personality personality,
                  MovementStrategy movementStrategy) {
@@ -34,6 +45,12 @@ public class Human extends Agent implements HospitalUser {
         this.isHostile = false;
     }
 
+    /**
+     * Zwiększa standardową listę metadanych agenta o parametry ściśle związane z gatunkiem
+     * ludzkim i infrastrukturą socjologiczną (status szczepień, szpitali oraz agresji).
+     *
+     * @return Uporządkowana i pokolorowana lista obiektów InspectionProperty.
+     */
     @Override
     public List<InspectionProperty> getInspectionProperties() {
         List<InspectionProperty> props = super.getInspectionProperties();
@@ -55,9 +72,11 @@ public class Human extends Agent implements HospitalUser {
     }
 
     /**
-     * Deleguje proces podejmowania decyzji w epoce do przypisanego obiektu Osobowości.
+     * Wyzwala ocenę poznawczą agenta, przekazując sterowanie do obiektu typu Personality.
+     * Na podstawie aktualnych danych (context), agent może zmienić stan swoich maseczek,
+     * chęć hospitalizacji, a w skrajnych przypadkach zaktualizować swój obiekt strategii MovementStrategy.
      *
-     * @param context Kontekst świata symulacji, z którego agent czerpie informacje.
+     * @param context Aktualny obraz świata z perspektywy centralnej administracji (wskaźniki zakażeń).
      */
     @Override
     public void think(WorldContext context) {
@@ -89,11 +108,12 @@ public class Human extends Agent implements HospitalUser {
     public void setIsInHospital(boolean status) { this.isInHospital = status; }
 
     /**
-     * Oblicza skumulowaną podatność na zakażenie (wartość mniejsza = trudniej zarazić).
-     * Uwzględnia wrodzoną odporność (resistance) oraz stosowane środki zapobiegawcze,
-     * pobierając ich wagi z globalnej konfiguracji systemu.
+     * Oblicza skumulowaną i zredukowaną podatność organizmu na infekcje.
+     * Pobiera wagi wpływu z konfiguracji (Config) w celu zbilansowania wartości ochrony,
+     * wliczając zastosowanie wrodzonej rezystancji biologicznej oraz wyposażenia osobistego.
+     * Mniejszy zwrot funkcji odzwierciedla zwiększone szanse na pomyślne przetrwanie bliskiego kontaktu.
      *
-     * @return Ułamek określający szansę na zarażenie w kontakcie z wirusem.
+     * @return Skalar określający ostateczny współczynnik podatności komórek w ciele agenta na patogen.
      */
     @Override
     public double getVulnerabilityMultiplier() {

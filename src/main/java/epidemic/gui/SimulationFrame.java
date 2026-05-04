@@ -11,9 +11,10 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Główne okno aplikacji (JFrame).
- * Spina wszystkie elementy sterujące (przyciski, suwaki), paski informacji oraz płótno mapy.
- * Zarządza głównym timerem odświeżania symulacji.
+ * Główne okno aplikacji oparte na bibliotece Swing.
+ * Pełni rolę kontrolera (Controller) oraz głównego kontenera widoku (View).
+ * Odpowiada za cykl życia głównego timera symulacji, synchronizację stanu silnika
+ * z interfejsem graficznym oraz bezpieczne zamykanie i eksportowanie wyników.
  */
 public class SimulationFrame extends JFrame {
     private final SimulationEngine engine;
@@ -26,6 +27,14 @@ public class SimulationFrame extends JFrame {
     private final JLabel totalLabel = new JLabel("Populacja: 0");
     private final JLabel epochLabel = new JLabel("Epoka: 0");
 
+    /**
+     * Buduje główny interfejs graficzny symulacji.
+     * Inicjalizuje panele statystyk, kontrolki sterujące oraz płótno mapy.
+     * Konfiguruje akcje przycisków oraz zachowanie aplikacji przy zamykaniu okna.
+     *
+     * @param engine Główny silnik symulacji zarządzający logiką domenową.
+     * @param world Stan mapy świata wykorzystywany do renderowania wizualizacji.
+     */
     public SimulationFrame(SimulationEngine engine, WorldMap world) {
         this.engine = engine;
         this.mapPanel = new MapPanel(world);
@@ -110,8 +119,10 @@ public class SimulationFrame extends JFrame {
     }
 
     /**
-     * Krok synchronizujący. Przesuwa czas w silniku o jedną epokę,
-     * pobiera zaktualizowane statystyki i wymusza przemalowanie widoku mapy.
+     * Centralny punkt synchronizacji między warstwą logiki a warstwą widoku.
+     * Wywoływany cyklicznie przez Timer w wątku Event Dispatch Thread (EDT).
+     * Wymusza przeliczenie kolejnej epoki, aktualizuje etykiety telemetryczne
+     * i zleca przerysowanie płótna. Automatycznie zatrzymuje symulację w przypadku wygaśnięcia epidemii.
      */
     private void step() {
         engine.runNextEpoch();
@@ -138,7 +149,11 @@ public class SimulationFrame extends JFrame {
     }
 
     /**
-     * Zatrzymuje działanie i wywołuje okno podsumowania z wykresem.
+     * Obsługuje proces zakończenia symulacji, wyświetlając podsumowanie
+     * i oferując użytkownikowi możliwość wygenerowania wykresów analitycznych.
+     * Zapewnia bezpieczny fallback ścieżki eksportu w przypadku braku uprawnień administratora.
+     *
+     * @param reason Komunikat wyjaśniający powód przerwania symulacji.
      */
     private void handleSimulationEnd(String reason) {
         engine.setPaused(true);
@@ -146,7 +161,6 @@ public class SimulationFrame extends JFrame {
         List<EpochData> history = engine.getStats().getHistory();
         EpochData finalData = history.get(history.size() - 1);
 
-        // POPRAWIONE: Usunięto czwarty znacznik %d, który powodował MissingFormatArgumentException
         String report = String.format(
                 "<html><h3>%s</h3>" +
                         "<b>Czas trwania:</b> %d epok<br>" +
@@ -166,11 +180,12 @@ public class SimulationFrame extends JFrame {
         );
 
         if (choice == JOptionPane.YES_OPTION) {
-            String fileName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
-            engine.getStats().exportToCSV(fileName);
+            String baseName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
+            String safePath = epidemic.service.FileExportService.getSafeExportPath(baseName);
+            engine.getStats().exportToCSV(safePath);
 
             new Thread(() -> {
-                epidemic.charts.SimulationChartGenerator.showResults(fileName);
+                epidemic.charts.SimulationChartGenerator.showResults(safePath);
             }).start();
 
             this.dispose();
@@ -179,7 +194,7 @@ public class SimulationFrame extends JFrame {
         }
     }
     /**
-     * Metoda inicjująca wyświetlanie okna i uruchamiająca pętlę symulacji.
+     * Upowszechnia okno na ekranie i uruchamia główną pętlę zdarzeń symulacji.
      */
     public void start() {
         setVisible(true);

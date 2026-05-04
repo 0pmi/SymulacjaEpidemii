@@ -9,8 +9,11 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Złośliwa strategia decyzyjna. Agent zachowuje się poprawnie, dopóki system ochrony zdrowia nie zawiedzie.
- * Gdy zostaje odrzucony przez pełny szpital, wpada w furię, zdejmuje maskę i zaczyna zarażać innych.
+ * Złośliwa strategia decyzyjna (wzorzec Strategy) oparta na rosnącym wskaźniku frustracji jednostki.
+ * Agent zachowuje się zgodnie ze standardami społecznymi do momentu, w którym system ochrony zdrowia
+ * odmawia mu dostępu do leczenia (np. ze względu na przepełnione szpitale).
+ * Przekroczenie progu cierpliwości skutkuje wpadnięciem w furię, odrzuceniem środków ochronnych
+ * i celowym rozsiewaniem patogenu na innych agentów.
  */
 public class VindictiveDecisionStrategy implements DecisionStrategy {
 
@@ -18,9 +21,21 @@ public class VindictiveDecisionStrategy implements DecisionStrategy {
     private final MovementStrategy hospitalMovementStrategy;
     private final MovementStrategy normalMovementStrategy;
 
-    // Mapa śledząca licznik frustracji per agent.
+    /**
+     * Mapa śledząca licznik frustracji przypisany do konkretnego agenta.
+     * Wykorzystanie struktury {@link WeakHashMap} gwarantuje, że wpisy dla zmarłych
+     * lub usuniętych z mapy agentów zostaną automatycznie zebrane przez Garbage Collector,
+     * zapobiegając wyciekom pamięci w długo trwających symulacjach.
+     */
     private final Map<Human, Integer> frustrationMap = new WeakHashMap<>();
 
+    /**
+     * Inicjalizuje mściwą strategię decyzyjną.
+     *
+     * @param maliciousMovementStrategy Wzorzec ruchu aktywowany po wpadnięciu w furię (agresywne podążanie za ofiarami).
+     * @param hospitalMovementStrategy Strategia wyznaczająca trasę do placówki medycznej.
+     * @param normalMovementStrategy Standardowy wzorzec ruchu stosowany przed wybuchem frustracji lub po wyleczeniu.
+     */
     public VindictiveDecisionStrategy(
             MovementStrategy maliciousMovementStrategy,
             MovementStrategy hospitalMovementStrategy,
@@ -30,12 +45,20 @@ public class VindictiveDecisionStrategy implements DecisionStrategy {
         this.normalMovementStrategy = normalMovementStrategy;
     }
 
+    /**
+     * Weryfikuje cierpliwość chorego agenta oczekującego na przyjęcie do placówki medycznej.
+     * Każda epoka spędzona poza oddziałem zwiększa licznik frustracji. Osiągnięcie limitu
+     * wyzwala status wrogości (Hostile). Udane wejście do szpitala lub całkowite wyleczenie
+     * automatycznie resetuje ten stan i uspokaja agenta.
+     *
+     * @param human Agent poddawany ewaluacji i presji psychologicznej.
+     * @param world Stan środowiska symulacji.
+     */
     @Override
     public void makeDecision(Human human, WorldContext world) {
         if (human.getHealthStatus() == HealthStatus.SICK) {
             human.setWantsHospital(true);
 
-            // Sprawdzam, czy agent czeka na wejście do szpitala
             if (!human.isInHospital()) {
                 int currentFrustration = frustrationMap.getOrDefault(human, 0) + 1;
                 frustrationMap.put(human, currentFrustration);
@@ -43,21 +66,18 @@ public class VindictiveDecisionStrategy implements DecisionStrategy {
                 int maxFrustration = Config.getInt("vindictive.frustrationThreshold", 10);
 
                 if (currentFrustration >= maxFrustration) {
-                    // Agent wpada w furię
                     human.setWearingMask(false);
                     human.setMovementStrategy(maliciousMovementStrategy);
                     human.setHostile(true);
                     return;
                 }
             } else {
-                // Udało się wejść do szpitala - uspokaja się
                 frustrationMap.put(human, 0);
                 human.setHostile(false);
             }
 
             human.setMovementStrategy(hospitalMovementStrategy);
         } else {
-            // Zdrowy lub wyzdrowiały agent
             frustrationMap.remove(human);
             human.setWantsHospital(false);
             human.setHostile(false); //

@@ -13,9 +13,10 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
- * Komponent graficzny (Widok) odpowiedzialny za renderowanie siatki świata,
- * agentów oraz infrastruktury. Zapewnia również interaktywność za pomocą myszy
- * (Zaawansowany Inspektor Obiektu aktualizowany na żywo).
+ * Złożony komponent graficzny pełniący rolę głównego widoku operacyjnego.
+ * Składa się z dynamicznie odświeżanego płótna (DrawingPanel) renderującego stan przestrzenny
+ * mapy oraz bocznego panelu telemetrycznego (InspectorPanel) wykorzystującego
+ * polimorfizm do wyświetlania szczegółów wybranych obiektów.
  */
 public class MapPanel extends JPanel {
     private final WorldMap world;
@@ -27,6 +28,11 @@ public class MapPanel extends JPanel {
     // Referencja do aktualnie śledzonego obiektu, by odświeżać go na bieżąco
     private Object currentlyInspected = null;
 
+    /**
+     * Tworzy i konfiguruje układ paneli wizualnych.
+     *
+     * @param world Referencja do mapy świata, z której pobierane będą obiekty do renderowania.
+     */
     public MapPanel(WorldMap world) {
         this.world = world;
         this.scale = Config.getInt("gui.mapScale", 7);
@@ -50,7 +56,10 @@ public class MapPanel extends JPanel {
     }
 
     /**
-     * Wewnętrzna klasa panelu płótna odpowiedzialna wyłącznie za logikę rysowania (paintComponent).
+     * Wewnętrzna warstwa prezentacji mapy.
+     * Zapewnia sprzętową akcelerację renderowania prymitywów geometrycznych
+     * przy użyciu Graphics2D. Definiuje porządek rysowania (tzw. Z-index):
+     * pola infekcji -> szpitale -> agenci -> nakładki zaznaczenia.
      */
     private class DrawingPanel extends JPanel {
         public DrawingPanel() {
@@ -139,7 +148,12 @@ public class MapPanel extends JPanel {
     }
 
     /**
-     * Rejestruje nasłuchiwacz kliknięć myszą, pozwalający na wybór obiektu do śledzenia.
+     * Rejestruje nasłuchiwacz zdarzeń myszy, implementujący logikę hit-testingu.
+     * Priorytetyzuje wybór obiektów na mapie: w pierwszej kolejności sprawdza obiekty
+     * infrastruktury (szpitale), a w przypadku ich braku przechodzi do wyszukiwania
+     * agentów w promieniu zdefiniowanym w konfiguracji.
+     *
+     * @param engine Referencja do silnika symulacji (gotowa do ewentualnego rozszerzenia interakcji).
      */
     public void setupMouseListener(SimulationEngine engine) {
         drawingPanel.addMouseListener(new MouseAdapter() {
@@ -177,6 +191,10 @@ public class MapPanel extends JPanel {
         });
     }
 
+    /**
+     * Przeciąża standardową metodę przerysowania komponentu, kaskadowo
+     * wymuszając aktualizację na podobiektach: płótnie i inspektorze.
+     */
     @Override
     public void repaint() {
         super.repaint();
@@ -188,9 +206,12 @@ public class MapPanel extends JPanel {
         }
     }
 
-    // ===================================================================================
-    // Wewnętrzna klasa Inspektora - Dynamicznie buduje interfejs w zależności od obiektu
-    // ===================================================================================
+    /**
+     * Wewnętrzny komponent telemetrii.
+     * Obsługuje dynamiczne budowanie interfejsu (etykiety, paski postępu)
+     * na podstawie metadanych dostarczanych przez obiekty implementujące
+     * interfejs {@link epidemic.model.Inspectable}.
+     */
     private class InspectorPanel extends JPanel {
 
         public InspectorPanel() {
@@ -199,6 +220,12 @@ public class MapPanel extends JPanel {
             refresh(null);
         }
 
+        /**
+         * Czyści aktualny widok i przebudowuje go na podstawie właściwości
+         * przekazanego obiektu.
+         *
+         * @param obj Wybrany na mapie obiekt infrastruktury lub agent, bądź null w przypadku braku wyboru.
+         */
         public void refresh(Object obj) {
             removeAll();
 

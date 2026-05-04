@@ -10,9 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Główny silnik sterujący upływem czasu w symulacji.
- * Orkiestruje pracę poszczególnych Menedżerów w ścisłej kolejności (Zachowanie -> Ruch -> Infekcje -> Medycyna -> Rozród -> Zgony).
- * Powiadamia podpiętych obserwatorów o zmianach w ekosystemie na koniec każdej epoki.
+ * Główny koordynator cyklu życia symulacji (wzorzec Fasada / Orchestrator).
+ * Zarządza sekwencyjnym wywoływaniem poszczególnych menedżerów w obrębie pojedynczej
+ * epoki (kroku czasowego). Gwarantuje deterministyczną kolejność faz:
+ * zachowanie -> ruch -> infekcje -> medycyna -> rozród -> zgony.
+ *
+ * <p>Implementuje wzorzec Obserwatora (Subject), rozgłaszając zagregowane
+ * statystyki populacji po pomyślnym zakończeniu każdej epoki.</p>
  */
 public class SimulationEngine implements Subject {
     private final WorldMap world;
@@ -47,35 +51,28 @@ public class SimulationEngine implements Subject {
     }
 
     /**
-     * Uruchamia pojedynczy cykl (epokę) symulacji.
-     * Wykonuje pełny przebieg logiki biznesowej dla wszystkich agentów.
+     * Uruchamia pojedynczy cykl symulacji.
+     * Przetwarza logikę biznesową dla wszystkich agentów, aplikuje zmiany na mapie
+     * i powiadamia podpiętych obserwatorów o nowym stanie środowiska.
      */
     public void runNextEpoch() {
         WorldContext context = calculateContext();
 
-        // 1. Zbieranie informacji i decyzje
         behaviourManager.updateBehaviours(world, context);
-        // 2. Przemieszczanie po planszy
         movementManager.moveAgents(world);
-        // 3. Rozprzestrzenianie patogenu
         infectionManager.processInfections(world);
-        // 4. Interwencje medyczne w szpitalach
         medicalManager.processMedicalCare(world, context);
-        // 5. Powoływanie do życia nowego pokolenia
         reproductionManager.handleReproduction(world, world.getSpatialManager(), currentEpoch);
-        // 6. Przetwarzanie postępów choroby i ewentualnych zgonów
         int newVirusDeaths = mortalityManager.processLifeCycles(world, world.getAgents());
         int totalDeathsThisStep = (int) world.getAgents().stream().filter(Agent::isDead).count();
         this.totalVirusDeaths += newVirusDeaths;
         this.totalNaturalDeaths += (totalDeathsThisStep - newVirusDeaths);
 
-        // 7. Aplikowanie zmian na mapie oraz notyfikowanie observerów
         notifyObservers();
         world.applyChanges();
         world.decayInfectionFields();
         currentEpoch++;
 
-        // 8. Okresowe starzenie się populacji
         if (currentEpoch % Config.getInt("simulation.ageRate", 12) == 0){
             for (Agent a : world.getAgents()) {
                 a.incrementAge();
@@ -84,8 +81,11 @@ public class SimulationEngine implements Subject {
     }
 
     /**
-     * Generuje obiekt kontekstu dla bieżącej epoki. Kontekst ten służy agentom
-     * jako wiedza o świecie zewnętrznym (np. do podejmowania decyzji o kwarantannie).
+     * Generuje globalny kontekst informacyjny dla bieżącej epoki.
+     * Kontekst ten służy agentom jako "wiedza o świecie" (np. stopień rozprzestrzenienia
+     * wirusa), na podstawie której podejmują decyzje behawioralne.
+     *
+     * @return Obiekt agregujący globalne parametry w danej epoce.
      */
     private WorldContext calculateContext() {
         List<Agent> agents = world.getAgents();
@@ -98,12 +98,24 @@ public class SimulationEngine implements Subject {
                 Config.getDouble("simulation.baseContextValue", 0.01));
     }
 
+    /**
+     * Rejestruje nowego obserwatora nasłuchującego zmian statystycznych.
+     * @param observer Obiekt implementujący interfejs Observer (np. moduł statystyk).
+     */
     @Override
     public void addObserver(Observer observer) { observers.add(observer); }
 
+    /**
+     * Wyrejestrowuje istniejącego obserwatora.
+     * @param observer Obiekt do usunięcia z listy subskrybentów.
+     */
     @Override
     public void removeObserver(Observer observer) { observers.remove(observer); }
 
+    /**
+     * Oblicza bieżące podsumowanie demograficzne (zdrowi, chorzy, zmarli)
+     * i wysyła je do wszystkich zarejestrowanych obserwatorów.
+     */
     @Override
     public void notifyObservers() {
         List<Agent> agents = world.getAgents();

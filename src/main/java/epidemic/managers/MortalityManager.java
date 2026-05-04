@@ -8,23 +8,34 @@ import epidemic.strategies.mortality.MortalityStrategy;
 import java.util.List;
 
 /**
- * Menedżer nadzorujący stan zdrowia i cykl życia agentów (narodziny i zgon).
- * Przetwarza postęp infekcji u chorych, egzekwuje strategie śmiertelności
- * i zdejmuje martwych agentów z mapy.
+ * Moduł zarządzający cyklem życia i śmierci agentów.
+ * Wykorzystuje wstrzykniętą z zewnątrz strategię śmiertelności (wzorzec Strategy,
+ * np. krzywa sigmoidalna wieku) do obiektywnej ewaluacji ryzyka zgonu.
+ * Odpowiada za zarządzanie czasem trwania infekcji oraz proces usuwania
+ * martwych jednostek ze środowiska.
  */
 public class MortalityManager {
 
     private final MortalityStrategy mortalityStrategy;
 
+    /**
+     * Inicjalizuje menedżera z podaną strategią obliczania śmiertelności.
+     *
+     * @param mortalityStrategy Implementacja interfejsu ewaluującego szanse na śmierć
+     *                          naturalną oraz wirusową (wzorzec Dependency Injection).
+     */
     public MortalityManager(MortalityStrategy mortalityStrategy) {
         this.mortalityStrategy = mortalityStrategy;
     }
 
     /**
-     * Główna metoda ewaluująca stan biologiczny agentów w danej epoce.
+     * Główna metoda przetwarzająca stan biologiczny agentów w obrębie jednej epoki.
+     * Zleca usunięcie z pamięci mapy ciał martwych agentów oraz zlicza zgony
+     * spowodowane bezpośrednio przez wirusa w bieżącym kroku czasowym.
      *
-     * @param world Stan mapy, służący m.in. do zlecania usunięcia ciał.
-     * @param agents Lista agentów do przetworzenia.
+     * @param world Stan mapy udostępniający metody modyfikacji kolekcji agentów.
+     * @param agents Lista agentów zakwalifikowanych do przetworzenia w bieżącym kroku.
+     * @return Liczba agentów, którzy zmarli na skutek wirusa w trakcie wykonywania tej metody.
      */
     public int processLifeCycles(WorldMap world, List<Agent> agents) {
         int virusDeathsThisEpoch = 0;
@@ -49,9 +60,11 @@ public class MortalityManager {
         return virusDeathsThisEpoch;
     }
 
-    /**
-     * Przetwarza cykl trwającej infekcji.
-     * Uwaga: Nosiciele (CARRIER) zdrowieją, ale nie podlegają ryzyku zgonu z powodu choroby.
+    /*
+     * Przetwarza cykl trwającej infekcji poprzez redukcję jej licznika.
+     * Ewaluuje ryzyko zgonu wywołanego chorobą (dotyczy wyłącznie agentów SICK,
+     * nosiciele CARRIER są odporni na objawy śmiertelne). Jeśli agent przetrwa
+     * do końca czasu trwania infekcji, otrzymuje status ozdrowieńca (RECOVERED).
      */
     private boolean processSickness(Agent agent) {
         agent.decrementInfectionTimer();

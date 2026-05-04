@@ -9,8 +9,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Menedżer nadzorujący biologiczny proces rozmnażania populacji.
- * Poszukuje potencjalnych partnerów w bliskim sąsiedztwie i generuje potomstwo
- * na podstawie wskaźników płodności oraz ograniczeń wiekowych.
+ * Odpowiada za wyszukiwanie potencjalnych partnerów w bliskim sąsiedztwie
+ * i generowanie potomstwa na podstawie globalnych wskaźników płodności,
+ * cyklów odnowienia (cooldown) oraz ograniczeń wiekowych.
  */
 public class ReproductionManager {
 
@@ -19,6 +20,12 @@ public class ReproductionManager {
     private final int COOLDOWN_MIN;
     private final int COOLDOWN_MAX;
 
+    /**
+     * Inicjalizuje menedżera reprodukcji, wczytując parametry prawdopodobieństwa
+     * oraz zakresów odpoczynku z globalnej konfiguracji.
+     *
+     * @param agentFactory Fabryka agentów odpowiedzialna za polimorficzne tworzenie potomstwa.
+     */
     public ReproductionManager(AgentFactory agentFactory) {
         this.agentFactory = agentFactory;
         this.REPRODUCTION_CHANCE = Config.getDouble("reproduction.chance", 0.1);
@@ -29,6 +36,13 @@ public class ReproductionManager {
 
     /**
      * Główny cykl reprodukcyjny przetwarzany w każdej epoce.
+     * Przeszukuje przestrzeń wokół płodnych agentów w celu znalezienia partnera
+     * tego samego gatunku. Sukces reprodukcyjny jest losowy,
+     * a dany agent może wygenerować maksymalnie jedno potomstwo na epokę z danym partnerem.
+     *
+     * @param world Stan mapy docelowej dla nowo narodzonych jednostek.
+     * @param spatialManager Indeks przestrzenny ułatwiający szybkie zapytania o sąsiadów.
+     * @param currentEpoch Aktualny krok czasowy symulacji (wykorzystywany do stemplowania cyklu odnowienia).
      */
     public void handleReproduction(WorldMap world, SpatialManager spatialManager, int currentEpoch) {
         List<Agent> agents = world.getAgents();
@@ -56,9 +70,10 @@ public class ReproductionManager {
         }
     }
 
-    /**
-     * Sprawdza, czy agent spełnia warunki zdrowotne, wiekowe oraz czasowe do reprodukcji.
-     * Wymagany czas odpoczynku jest losowany w locie.
+    /*
+     * Weryfikuje gotowość agenta do rozrodu.
+     * Eliminuje osobniki martwe, chore (SICK), niedojrzałe płciowo
+     * oraz te, które nie przeszły wymaganego, dynamicznie losowanego okresu rekonwalescencji.
      */
     private boolean canParticipateInReproduction(Agent agent, int currentEpoch) {
         if (agent.isDead() || agent.getHealthStatus() == HealthStatus.SICK) {
@@ -76,6 +91,10 @@ public class ReproductionManager {
         return agent.getAge() >= requiredAge;
     }
 
+    /*
+     * Generuje nową jednostkę na podstawie DNA obojga rodziców, dodaje ją do świata
+     * i nakłada na partnerów blokadę reprodukcyjną z odpowiednim stemplem czasowym.
+     */
     private void spawnOffspring(WorldMap world, Agent a, Agent b, int currentEpoch) {
         Agent baby = agentFactory.createOffspring(a, b);
         if (baby != null) {

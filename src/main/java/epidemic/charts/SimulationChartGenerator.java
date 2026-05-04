@@ -12,13 +12,13 @@ import java.util.List;
 /**
  * Klasa narzędziowa odpowiedzialna za post-procesing i wizualizację danych symulacyjnych.
  * Wykorzystuje bibliotekę XChart do generowania interaktywnych wykresów XY na podstawie
- * historycznych danych wyeksportowanych do formatu CSV[cite: 28, 29].
+ * historycznych danych wyeksportowanych do formatu CSV.
  */
 public class SimulationChartGenerator {
 
     /**
      * Wczytuje wyniki z pliku tekstowego i inicjuje wyświetlenie okien z wykresami.
-     * Metoda parsuje dane o stanach zdrowia agentów oraz skumulowanych statystykach zgonów[cite: 32].
+     * Metoda parsuje dane o stanach zdrowia agentów oraz skumulowanych statystykach zgonów.
      *
      * @param csvFilePath Ścieżka do pliku CSV zawierającego dane z obiektów EpochData.
      */

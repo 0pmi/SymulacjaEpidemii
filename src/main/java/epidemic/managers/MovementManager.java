@@ -3,17 +3,20 @@ package epidemic.managers;
 import epidemic.model.*;
 
 /**
- * Menedżer odpowiedzialny za koordynowanie fizycznego przemieszczania się agentów na mapie.
- * Weryfikuje granice świata, przetwarza kolizje z infrastrukturą (np. wejście do szpitala)
- * oraz deleguje samo wyliczenie kroku do strategii ruchu przypisanej do konkretnego agenta.
+ * Moduł odpowiadający za przemieszczanie podmiotów w przestrzeni symulacji.
+ * Wykorzystuje polimorfizm i wzorzec Strategii (Strategy) przypisany do każdego agenta
+ * do wyznaczenia optymalnego wektora przesunięcia, z zachowaniem spójności
+ * i granic obszaru mapy.
  */
 public class MovementManager {
 
     /**
      * Główna metoda przetwarzająca ruch wszystkich agentów w pojedynczej epoce.
-     * Na koniec aktualizuje indeks przestrzenny na mapie, aby odzwierciedlić nowe pozycje.
+     * Ignoruje agentów aktualnie hospitalizowanych. Zabezpiecza przed opuszczeniem
+     * dozwolonego obszaru mapy, a po przeliczeniu wszystkich wektorów wymusza
+     * krytyczną aktualizację indeksu przestrzennego (np. drzewa/siatki wyszukiwań).
      *
-     * @param world Stan mapy symulacyjnej.
+     * @param world Stan mapy symulacyjnej udostępniający kolekcję agentów oraz granice.
      */
     public void moveAgents(WorldMap world) {
         for (Agent agent : world.getAgents()) {
@@ -24,7 +27,6 @@ public class MovementManager {
 
             Point2D nextPos = agent.getMovementStrategy().calculateNextPosition(agent, world);
 
-            // Weryfikacja, czy strategia nie wygenerowała kroku poza dozwolony obszar
             if (world.isWithinBounds(nextPos)) {
                 agent.setPosition(nextPos);
             }
@@ -32,15 +34,18 @@ public class MovementManager {
             checkHospitalInteraction(agent, world);
         }
 
-        // Krytyczny krok: po aktualizacji wszystkich pozycji należy przebudować drzewo/siatkę wyszukiwań
         world.rebuildSpatialIndex();
     }
 
+    /*
+     * Sprawdza, czy po wykonaniu ruchu agent znajduje się na polu placówki medycznej
+     * i posiada flagę chęci hospitalizacji. Jeśli warunki są spełnione, podejmuje próbę
+     * wpisania pacjenta na oddział.
+     */
     private void checkHospitalInteraction(Agent agent, WorldMap world) {
         if (agent instanceof HospitalUser user) {
             Hospital hospital = world.getHospitalAt(user.getPosition());
 
-            // Agent wchodzi do szpitala tylko, jeśli na jego polu jest placówka i ma taką chęć
             if (hospital != null && user.isWantsHospital()) {
                 if (hospital.addPatient(user)) {
                     user.setIsInHospital(true);

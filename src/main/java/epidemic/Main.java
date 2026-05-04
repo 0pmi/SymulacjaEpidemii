@@ -16,8 +16,9 @@ import java.util.Random;
 
 /**
  * Główny punkt wejścia do aplikacji.
- * Pełni rolę skryptu bootstrapującego (setup/init), konfigurując mapę,
- * agentów, szpitale oraz silnik przed oddaniem kontroli do interfejsu graficznego.
+ * Odpowiada za proces bootstrapowania symulacji: załadowanie konfiguracji,
+ * inicjalizację przestrzeni (WorldMap), wygenerowanie początkowej populacji
+ * (agenci, szpitale, zwierzęta) oraz uruchomienie silnika i interfejsu graficznego.
  */
 public class Main {
     public static void main(String[] args) {

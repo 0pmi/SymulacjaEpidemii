@@ -9,11 +9,11 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Strategia ruchu realizująca nakaz dystansowania społecznego.
- *
- * Wykorzystuje algorytm pól potencjałów (Potential Fields) do generowania sił
- * odpychających od innych agentów oraz od granic mapy, co minimalizuje zjawisko
- * agregacji agentów w narożnikach i na obrzeżach symulacji.
+ * Zaawansowana strategia ruchu (wzorzec Strategy) realizująca protokoły dystansowania społecznego.
+ * Wykorzystuje algorytm pól potencjałów (Potential Fields) do generowania
+ * dynamicznych wektorów sił odpychających. Agent poddawany jest repulsji zarówno
+ * ze strony innych jednostek, jak i samych granic mapy, co skutecznie zapobiega
+ * sztucznemu zjawisku agregacji i blokowania się tłumu w narożnikach symulacji.
  */
 public class SocialDistancingStrategy implements MovementStrategy {
 
@@ -24,9 +24,27 @@ public class SocialDistancingStrategy implements MovementStrategy {
     private final double socialForceWeight = Config.getDouble("movement.social.weight", 1.0);
     private final double boundaryForceWeight = Config.getDouble("movement.boundary.weight", 2.5);
 
-    /** Rekord pomocniczy reprezentujący wektor siły o wysokiej precyzji. */
+    /**
+     * Wewnętrzna struktura danych (DTO) reprezentująca wektor siły o wysokiej precyzji zmiennoprzecinkowej,
+     * używana podczas sumowania repulsywnych wpływów środowiskowych.
+     *
+     * @param x Składowa pozioma wektora siły.
+     * @param y Składowa pionowa wektora siły.
+     */
     private record ForceVector(double x, double y) {}
 
+    /**
+     * Oblicza nową pozycję agenta na podstawie bilansu sił w środowisku.
+     * Algorytm sumuje wektory ucieczki od wszystkich sąsiadów w promieniu percepcji
+     * oraz wektory odpychające od krawędzi mapy, uwzględniając konfigurację wag.
+     * Wypadkowa siła jest następnie normalizowana do pojedynczego kroku. W przypadku
+     * idealnej równowagi sił (brak dominujących bodźców), agent wykonuje losowy krok,
+     * aby uniknąć uwięzienia w lokalnym minimum.
+     *
+     * @param agent Agent poddawany działaniu sił dystansowania społecznego.
+     * @param world Stan mapy symulacyjnej pozwalający na odczyt pozycji sąsiadów i granic.
+     * @return Znormalizowana pozycja docelowa, bezpiecznie ograniczona do obszaru mapy.
+     */
     @Override
     public Point2D calculateNextPosition(Agent agent, WorldMap world) {
         Point2D currentPos = agent.getPosition();
@@ -35,30 +53,24 @@ public class SocialDistancingStrategy implements MovementStrategy {
         double totalX = 0;
         double totalY = 0;
 
-        // 1. Obliczanie sił społecznych (repulsja od sąsiadów)
         if (neighbors != null && !neighbors.isEmpty()) {
             for (Agent neighbor : neighbors) {
-                // Wektor ucieczki: (Pozycja_Bieżąca - Pozycja_Sąsiada)
                 totalX += (currentPos.x() - neighbor.getPosition().x()) * socialForceWeight;
                 totalY += (currentPos.y() - neighbor.getPosition().y()) * socialForceWeight;
             }
         }
 
-        // 2. Obliczanie sił granicznych (repulsja od krawędzi mapy)
         ForceVector boundaryForce = calculateBoundaryRepulsion(currentPos, world);
         totalX += boundaryForce.x() * boundaryForceWeight;
         totalY += boundaryForce.y() * boundaryForceWeight;
 
-        // 3. Normalizacja i wyznaczenie kierunku ruchu
         int dx = 0;
         int dy = 0;
 
-        // Jeśli siły wypadkowe są zauważalne, wyznaczamy kierunek
         if (Math.abs(totalX) > 0.001 || Math.abs(totalY) > 0.001) {
             dx = (int) Math.signum(totalX);
             dy = (int) Math.signum(totalY);
         } else {
-            // W przypadku braku bodźców (równowaga sił), wykonujemy błądzenie losowe
             dx = ThreadLocalRandom.current().nextInt(3) - 1;
             dy = ThreadLocalRandom.current().nextInt(3) - 1;
         }
@@ -67,6 +79,11 @@ public class SocialDistancingStrategy implements MovementStrategy {
         return clampToWorldBounds(targetPos, world);
     }
 
+    /*
+     * Oblicza siłę odpychającą od granic mapy na podstawie zdefiniowanego marginesu.
+     * Im agent znajduje się bliżej krawędzi, tym siła repulsji staje się silniejsza,
+     * zapobiegając wychodzeniu poza dozwolony obszar.
+     */
     private ForceVector calculateBoundaryRepulsion(Point2D pos, WorldMap world) {
         double fx = 0;
         double fy = 0;
@@ -86,6 +103,10 @@ public class SocialDistancingStrategy implements MovementStrategy {
         return new ForceVector(fx, fy);
     }
 
+    /*
+     * Funkcja pomocnicza przycinająca (clamp) ostateczne koordynaty do bezwzględnych granic mapy,
+     * co zapewnia bezpieczeństwo przed błędami indeksowania.
+     */
     private Point2D clampToWorldBounds(Point2D pos, WorldMap world) {
         int x = Math.max(0, Math.min(world.getWidth() - 1, pos.x()));
         int y = Math.max(0, Math.min(world.getHeight() - 1, pos.y()));

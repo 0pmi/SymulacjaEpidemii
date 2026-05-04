@@ -7,23 +7,31 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Złożony menedżer odpowiadający za mechanikę rozprzestrzeniania się patogenu.
- * Realizuje dwa wektory zakażeń:
- * 1. Bezpośredni (kropelkowy) na podstawie odległości (SpatialManager).
- * 2. Pośredni (aerozolowy) na podstawie stacjonarnych pól infekcji na mapie (WorldMap).
+ * Moduł odpowiedzialny za mechanikę rozprzestrzeniania się patogenu.
+ * Ocenia interakcje między agentami oraz środowiskiem (chmury zakaźne),
+ * przeliczając szanse na transmisję wirusa na podstawie dystansu przestrzennego
+ * i indywidualnej podatności organizmu (Vulnerability).
  */
 public class InfectionManager {
 
     private final Virus virus;
 
+    /**
+     * Inicjalizuje menedżera infekcji.
+     *
+     * @param virus Referencja do globalnego patogenu definiującego bazowe statystyki zakażeń.
+     */
     public InfectionManager(Virus virus) {
         this.virus = virus;
     }
 
     /**
-     * Przetwarza wektory zakażeń dla całej populacji w danej epoce.
+     * Przeprowadza pełną iterację procesu zakażania dla całej populacji na mapie.
+     * Przetwarza wektory transmisji dwutorowo:
+     * 1. Bezpośrednie zakażenia kropelkowe między nosicielami a podatnymi ofiarami w promieniu rażenia.
+     * 2. Zakażenia środowiskowe (aerozolowe) poprzez kontakt ze stacjonarnymi polami skażenia (InfectionField).
      *
-     * @param world Stan mapy zawierający agentów oraz strefy skażonego powietrza.
+     * @param world Aktualny stan mapy symulacyjnej udostępniający listę agentów i indeks przestrzenny.
      */
     public void processInfections(WorldMap world) {
         List<Agent> agents = world.getAgents();
@@ -56,12 +64,18 @@ public class InfectionManager {
         }
     }
 
+    /*
+     * Weryfikuje, czy agent jest żywy i posiada status umożliwiający transmisję patogenu.
+     */
     private boolean canSpreadVirus(Agent agent) {
         if (agent.isDead()) return false;
         HealthStatus status = agent.getHealthStatus();
         return status == HealthStatus.SICK || status == HealthStatus.CARRIER;
     }
 
+    /*
+     * Wyszukuje potencjalne ofiary w otoczeniu nosiciela i przeprowadza próbę infekcji.
+     */
     private void spreadToNeighbors(Agent spreader, SpatialManager spatialManager) {
         List<Agent> nearbyAgents = spatialManager.getNearbyAgents(spreader, virus.getInfectionRadius());
 
@@ -76,8 +90,10 @@ public class InfectionManager {
         }
     }
 
-    /**
-     * Kompiluje ostateczne prawdopodobieństwo zakażenia w danym kontakcie.
+    /*
+     * Oblicza finalne prawdopodobieństwo transmisji wirusa między dwoma agentami,
+     * biorąc pod uwagę bazową zjadliwość, asymptomatyczność nosiciela (CARRIER),
+     * spadek szansy wraz z odległością oraz środki ochrony osobistej ofiary (maski, szczepionki).
      */
     private double calculateFinalProbability(Agent spreader, Agent victim) {
         double prob = virus.getBaseInfectionProbability();
@@ -97,9 +113,9 @@ public class InfectionManager {
         return Math.max(0, prob);
     }
 
-    /**
-     * Zmienia status zdrowego agenta po udanej infekcji.
-     * Losuje, czy infekcja przebiega objawowo (SICK), czy bezobjawowo (CARRIER).
+    /*
+     * Aplikuje skutki pomyślnej infekcji na agencie, z uwzględnieniem szansy
+     * na bezobjawowy przebieg choroby.
      */
     private void infect(Agent victim) {
         double carrierProb = Config.getDouble("infection.carrierProbability", 0.2);

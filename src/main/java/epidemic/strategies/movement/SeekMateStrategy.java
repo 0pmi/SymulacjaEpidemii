@@ -9,10 +9,25 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Strategia kierująca agenta w stronę najbliższego potencjalnego partnera do rozrodu.
+ * Strategia prokreacyjna (wzorzec Strategy) ukierunkowująca agenta na poszukiwanie
+ * najbliższego, potencjalnego partnera do rozrodu.
+ * Wykorzystuje mechanizm zachłannego wyszukiwania (greedy search) w określonym promieniu,
+ * priorytetyzując przetrwanie gatunku poprzez dobór zdrowych jednostek.
  */
 public class SeekMateStrategy implements MovementStrategy {
 
+    /**
+     * Wyznacza wektor ruchu skierowany w stronę najbliższego, kompatybilnego partnera.
+     * Algorytm skanuje otoczenie w promieniu zdefiniowanym konfiguracją ({@code movement.seekMate.radius})
+     * i filtruje jednostki pod kątem zgodności gatunkowej, osiągnięcia dojrzałości
+     * płciowej oraz pełnego zdrowia (status HEALTHY). W przypadku braku
+     * odpowiednich kandydatów, strategia uruchamia mechanizm zapasowy (fallback),
+     * przechodząc w tryb błądzenia losowego.
+     *
+     * @param agent Agent poszukujący partnera.
+     * @param world Aktualny stan mapy dostarczający indeks przestrzenny sąsiadów.
+     * @return Nowa pozycja przybliżająca agenta do partnera lub losowy krok w terenie.
+     */
     @Override
     public Point2D calculateNextPosition(Agent agent, WorldMap world) {
         double searchRadius = Config.getDouble("movement.seekMate.radius", 15.0);
