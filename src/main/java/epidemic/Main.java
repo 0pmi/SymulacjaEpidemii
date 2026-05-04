@@ -16,14 +16,13 @@ import java.util.Random;
 
 /**
  * Główny punkt wejścia do aplikacji.
- * Odpowiada za proces bootstrapowania symulacji: załadowanie konfiguracji,
- * inicjalizację przestrzeni (WorldMap), wygenerowanie początkowej populacji
- * (agenci, szpitale, zwierzęta) oraz uruchomienie silnika i interfejsu graficznego.
+ * Pełni rolę skryptu bootstrapującego (setup/init), konfigurując mapę,
+ * agentów, szpitale oraz silnik przed oddaniem kontroli do interfejsu graficznego.
  */
 public class Main {
     public static void main(String[] args) {
         // 1. Inicjalizacja konfiguracji
-        Config.load();
+        Config.load("config.properties");
         SpeciesType.initAllFromConfig();
 
         // 2. Konfiguracja Świata i Wirusa

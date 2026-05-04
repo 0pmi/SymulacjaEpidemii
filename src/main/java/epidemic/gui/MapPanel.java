@@ -165,7 +165,6 @@ public class MapPanel extends JPanel {
 
                 currentlyInspected = null;
 
-                // 1. Sprawdzenie kliknięcia w infrastrukturę szpitalną
                 for (Hospital hospital : world.getHospitals()) {
                     Point2D hPos = hospital.getPosition();
                     if (Math.abs(hPos.x() - mapX) <= 1 && Math.abs(hPos.y() - mapY) <= 1) {
@@ -174,7 +173,6 @@ public class MapPanel extends JPanel {
                     }
                 }
 
-                // 2. Jeśli nie kliknięto szpitala, sprawdza agentów
                 if (currentlyInspected == null) {
                     List<Agent> clickedAgents = world.getNeighbors(clickPos, Config.getDouble("gui.clickRadius", 2.0));
                     if (!clickedAgents.isEmpty()) {
@@ -185,7 +183,6 @@ public class MapPanel extends JPanel {
                                 .orElse(null);
                     }
                 }
-                // Wymuszenie odświeżenia paneli
                 repaint();
             }
         });
@@ -244,7 +241,6 @@ public class MapPanel extends JPanel {
                     add(new JLabel(prop.label() + ":"));
 
                     if (prop.progressMax() != null) {
-                        // Jeśli dostarczono dane dla paska postępu - stwórz ProgressBar
                         JProgressBar bar = new JProgressBar(0, prop.progressMax());
                         bar.setValue(prop.progressValue());
                         bar.setStringPainted(true);
@@ -253,7 +249,6 @@ public class MapPanel extends JPanel {
                         }
                         add(bar);
                     } else {
-                        // Jeśli nie, dodaj wartość jako zwykły tekst (z ew. kolorem)
                         JLabel valLabel = new JLabel(prop.stringValue());
                         if (prop.highlightColor() != null) {
                             valLabel.setForeground(prop.highlightColor());

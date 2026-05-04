@@ -69,16 +69,21 @@ public class SimulationFrame extends JFrame {
             handleSimulationEnd("Symulacja przerwana ręcznie przez użytkownika.");
         });
 
-        // Bezpieczne zapisywanie statystyk przed zamknięciem programu
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 System.out.println("Zamykanie GUI... Zapisywanie statystyk.");
-                String fileName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
-                engine.getStats().exportToCSV(fileName);
+
+                if (timer != null && timer.isRunning()) {
+                    timer.stop();
+                }
+
+                String baseName = Config.getString("stats.exportFilename", "wyniki_symulacji.csv");
+                String safePath = epidemic.service.FileExportService.getSafeExportPath(baseName);
+                engine.getStats().exportToCSV(safePath);
 
                 new Thread(() -> {
-                    SimulationChartGenerator.showResults(fileName);
+                    epidemic.charts.SimulationChartGenerator.showResults(safePath);
                 }).start();
             }
         });
