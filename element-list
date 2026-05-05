@@ -1,0 +1,12 @@
+epidemic
+epidemic.charts
+epidemic.engine
+epidemic.factory
+epidemic.gui
+epidemic.managers
+epidemic.model
+epidemic.service
+epidemic.statistics
+epidemic.strategies.decision
+epidemic.strategies.mortality
+epidemic.strategies.movement
