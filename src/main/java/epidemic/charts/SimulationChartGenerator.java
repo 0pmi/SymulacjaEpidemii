@@ -1,5 +1,6 @@
 package epidemic.charts;
 
+import epidemic.service.FileExportService;
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 
@@ -77,6 +78,23 @@ public class SimulationChartGenerator {
 
         deathChart.addSeries("Z powodu infekcji", epochs, virusDeaths);
         deathChart.addSeries("Przyczyny naturalne", epochs, naturalDeaths);
+
+        try {
+            String safePopPathBase = FileExportService.getSafeExportPath("populacja_wykres");
+            String safeDeathPathBase = FileExportService.getSafeExportPath("zgony_wykres");
+
+            VectorGraphicsEncoder.saveVectorGraphic(populationChart, safePopPathBase, VectorGraphicsEncoder.VectorGraphicsFormat.PDF);
+            VectorGraphicsEncoder.saveVectorGraphic(deathChart, safeDeathPathBase, VectorGraphicsEncoder.VectorGraphicsFormat.PDF);
+
+            System.out.println("Pomyślnie wyeksportowano wykresy symulacji do plików PDF.");
+        } catch (IOException e) {
+            System.err.println("Błąd krytyczny I/O podczas utrwalania wykresów: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Błąd konfiguracji eksportera wektorowego (sprawdź zależności maven/gradle): " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Wystąpił nieoczekiwany błąd podczas generowania raportu PDF: " + e.getMessage());
+        }
+
 
         javax.swing.JFrame popFrame = new SwingWrapper<>(populationChart).displayChart();
         javax.swing.JFrame deathFrame = new SwingWrapper<>(deathChart).displayChart();
