@@ -40,7 +40,7 @@ public class SimulationEngine implements Subject {
         this.world = world;
         this.virus = virus;
         this.stats = new Statistics();
-        this.addObserver(this.stats); // Statystyki domyślnie nasłuchują silnika
+        this.addObserver(this.stats);
 
         this.behaviourManager = new BehaviourManager();
         this.movementManager = new MovementManager();

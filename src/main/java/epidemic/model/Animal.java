@@ -35,10 +35,8 @@ public class Animal extends Agent {
      */
     @Override
     public List<InspectionProperty> getInspectionProperties() {
-        // Generujemy listę dziedziczoną z klasy Agent
         List<InspectionProperty> props = super.getInspectionProperties();
 
-        // Uzupełniamy tylko, jeśli zwierzę żyje
         if (!isDead()) {
             props.add(InspectionProperty.text("Prędkość bazowa", String.valueOf(getBaseSpeed())));
         }

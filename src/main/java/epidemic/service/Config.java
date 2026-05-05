@@ -29,11 +29,10 @@ public class Config {
      * @param fileName Nazwa pliku konfiguracyjnego do wczytania (np. "config.properties").
      */
     public static void load(String fileName) {
-        // Path.of automatycznie dobiera odpowiedni separator (np. \ dla Windows)
+        // Path.of automatycznie dobiera odpowiedni separator (\ dla Windows)
         Path rootPath = Path.of(fileName);
         Path appPath = Path.of("app", fileName);
 
-        // Wybór pierwszej istniejącej lokalizacji zewnętrznej
         Path externalPath = Files.exists(rootPath) ? rootPath : (Files.exists(appPath) ? appPath : null);
 
         if (externalPath != null) {
@@ -46,7 +45,6 @@ public class Config {
             }
         }
 
-        // Próba wczytania z zasobów wewnętrznych (classpath)[cite: 1]
         try (InputStream is = Config.class.getClassLoader().getResourceAsStream(fileName)) {
             if (is == null) {
                 System.err.println("BŁĄD: Nie znaleziono pliku " + fileName + " w zasobach.");
@@ -66,7 +64,7 @@ public class Config {
      * Pobiera wartość zmiennoprzecinkową dla podanego klucza.
      * @param key Klucz właściwości.
      * @param defaultValue Wartość zwracana w przypadku braku klucza.
-     * @return Wartość double z konfiguracji lub wartość domyślna.[cite: 1]
+     * @return Wartość double z konfiguracji lub wartość domyślna.
      */
     public static double getDouble(String key, double defaultValue) {
         String value = props.getProperty(key);
@@ -85,7 +83,7 @@ public class Config {
      * </p>
      * @param key Klucz właściwości do odszukania w konfiguracji.
      * @param defaultValue Wartość zwracana w przypadku braku klucza lub błędu parsowania.
-     * @return Wartość {@code int} z konfiguracji lub wartość domyślna.[cite: 1]
+     * @return Wartość {@code int} z konfiguracji lub wartość domyślna.
      */
     public static int getInt(String key, int defaultValue) {
         String value = props.getProperty(key);
@@ -100,7 +98,7 @@ public class Config {
      * Pobiera wartość tekstową dla podanego klucza.
      * @param key Klucz właściwości.
      * @param defaultValue Wartość zwracana w przypadku braku klucza.
-     * @return Wartość {@code String} z konfiguracji lub podana wartość domyślna.[cite: 1]
+     * @return Wartość {@code String} z konfiguracji lub podana wartość domyślna.
      */
     public static String getString(String key, String defaultValue) {
         return props.getProperty(key, defaultValue);

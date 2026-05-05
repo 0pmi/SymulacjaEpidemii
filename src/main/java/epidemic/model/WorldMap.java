@@ -151,7 +151,7 @@ public class WorldMap {
      * @param infectivity Parametr określający siłę zostawionego wirusa.
      */
     public void addOrRefreshInfectionField(Point2D pos, double infectivity) {
-        // Normalizacja pozycji do "kratki" na mapie
+        // Normalizacja pozycji do kratki na mapie
         String key = (int)pos.x() + "," + (int)pos.y();
 
         airborneFields.compute(key, (k, existingField) -> {

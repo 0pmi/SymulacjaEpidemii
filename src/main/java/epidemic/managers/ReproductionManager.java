@@ -56,14 +56,13 @@ public class ReproductionManager {
             List<Agent> partnersAtSameSpot = spatialManager.getNearbyAgents(parentA, matingRange);
 
             for (Agent parentB : partnersAtSameSpot) {
-                // Partner musi być innym agentem tego samego gatunku, gotowym do rozrodu
                 if (parentB != parentA &&
                         parentB.getSpeciesType() == parentA.getSpeciesType() &&
                         canParticipateInReproduction(parentB, currentEpoch)) {
 
                     if (ThreadLocalRandom.current().nextDouble() < REPRODUCTION_CHANCE) {
                         spawnOffspring(world, parentA, parentB, currentEpoch);
-                        break; // Tylko jedno potomstwo na epokę z danym partnerem
+                        break;
                     }
                 }
             }
